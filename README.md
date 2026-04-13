@@ -5,12 +5,33 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="Assets/applock.png" width="200" />
+  <img src="Assets/photo0.png" width="200" />
+  <img src="Assets/photo1.png" width="200" />
+  <img src="Assets/photo2.png" width="200" />
+</p>
+<p align="center">
+  <img src="Assets/photo3.png" width="200" />
+  <img src="Assets/photo4.png" width="200" />
+  <img src="Assets/photo5.png" width="200" />
+  <img src="Assets/photo6.png" width="200" />
+</p>
+<p align="center">
+  <img src="Assets/photo7.png" width="200" />
+  <img src="Assets/settings.png" width="200" />
+</p>
+
+---
+
 ## ✅ Key Features
 
 | Feature | Details |
 |---|---|
 | **Member Management** | Add, view, edit, delete members (soft-delete with confirmation) |
-| **App Lock (High Security)** | Biometric (Fingerprint) & 4-digit PIN support. `FLAG_SECURE` enabled to hide content in task switcher. Auto-locks immediately when backgrounded. |
+| **App Lock (High Security)** | Biometric (Fingerprint) & 4-digit PIN support. Auto-locks after 5 minutes of inactivity. |
 | **Manual Backup & Share** | Generate `.db` backups instantly. One-click save to `Downloads/GymBackup`. |
 | **Auto Backup (24h)** | Fully automatic background backup every 24 hours to local storage (if enabled). |
 | **Messaging Logic** | Smart toggle system: WhatsApp and SMS reminders are mutually exclusive. |
@@ -64,7 +85,7 @@ The app uses a **Manual-First Security Model** for data protection:
 
 ### 2. Automatic 24h Backup
 - Enable **Auto Backup** in Settings.
-- The app uses Android `WorkManager` to silently create a fresh backup in `Downloads/GymBackup/` every 24 hours.
+- The app uses Android `WorkManager` to silently create a fresh fresh backup in `Downloads/GymBackup/` every 24 hours.
 
 ### 3. Restoring Data
 - Tap **Restore from File**.
@@ -75,10 +96,10 @@ The app uses a **Manual-First Security Model** for data protection:
 
 ## 🛡️ Security Features
 
-- **Instant Auto-Lock**: The app resets its unlocked state the moment it is paused or stopped (backgrounded).
-- **Task Switcher Privacy**: Content is hidden (blacked out) in the recent apps list using `WindowManager.LayoutParams.FLAG_SECURE`.
+- **5-Minute Grace Period**: The app only locks if it has been in the background for more than 5 minutes.
+- **App-Specific PIN**: Uses a dedicated 4-digit PIN independent of the phone's lock screen.
 - **Haptic Keypad**: Professional PIN entry with shake animations on error and haptic feedback.
-- **Biometric Integration**: Seamless Fingerprint/Face ID prompt on launch.
+- **Biometric Integration**: Seamless Fingerprint prompt on launch.
 
 ---
 
