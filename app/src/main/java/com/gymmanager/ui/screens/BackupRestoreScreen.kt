@@ -72,10 +72,7 @@ fun BackupRestoreScreen(
             val res = driveManager.createBackupFile(vm.repo)
             isLoading = false
             if (res.isSuccess) {
-                val file = res.getOrThrow()
-                val intent = driveManager.getShareIntent(file)
-                context.startActivity(Intent.createChooser(intent, "Save Backup to..."))
-                statusMessage = "✅ Backup file created. Share it to Google Drive or other apps."
+                statusMessage = "✅ Backup saved to Downloads/GymBackup folder! Old backups were removed."
                 isError = false
             } else {
                 statusMessage = "❌ Backup failed: ${res.exceptionOrNull()?.message}"
@@ -156,9 +153,9 @@ fun BackupRestoreScreen(
                         Spacer(Modifier.width(12.dp))
                     }
                     Column {
-                        Text("Create & Share Backup", style = MaterialTheme.typography.titleSmall,
+                        Text("Create Backup", style = MaterialTheme.typography.titleSmall,
                             color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("Save database file to Drive/Cloud",
+                        Text("Save to Downloads/GymBackup",
                             style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                     }
                 }

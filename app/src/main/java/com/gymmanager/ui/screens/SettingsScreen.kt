@@ -70,7 +70,14 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
             if (v) it[DataStoreKeys.WHATSAPP_ENABLED] = false
         }
     }
-    fun setAutoBackup(v: Boolean) = scope.launch { context.dataStore.edit { it[DataStoreKeys.AUTO_BACKUP] = v } }
+    fun setAutoBackup(v: Boolean) = scope.launch { 
+        context.dataStore.edit { it[DataStoreKeys.AUTO_BACKUP] = v }
+        if (v) {
+            com.gymmanager.backup.AutoBackupWorker.schedule(context)
+        } else {
+            com.gymmanager.backup.AutoBackupWorker.cancel(context)
+        }
+    }
     fun setAppLock(v: Boolean)    = scope.launch {
         if (!v) {
             context.dataStore.edit { it[DataStoreKeys.APP_LOCK] = false }
@@ -149,10 +156,10 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Column {
-                GymSettingsToggle("Auto Backup to Drive", "Daily backup when internet available",
+                GymSettingsToggle("Auto Backup (24h)", "Daily automatic backup to local storage",
                     Icons.Default.CloudSync, Cyan500, autoBackup) { setAutoBackup(it) }
                 HorizontalDivider(color = GymBgBorder, modifier = Modifier.padding(horizontal = 16.dp))
-                GymSettingsNavRow("Backup & Restore", "Manual backup or restore from Google Drive",
+                GymSettingsNavRow("Backup & Restore", "Manual backup or restore from file",
                     Icons.Default.CloudUpload, Color(0xFF0277BD)) { onNavigate(Screen.BackupRestore.route) }
             }
         }

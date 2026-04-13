@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.sp
 import com.gymmanager.data.model.GymInfo
 import com.gymmanager.ui.components.*
@@ -92,13 +93,16 @@ fun SplashScreen(onFinished: () -> Unit) {
 //  SETUP SCREEN
 // ─────────────────────────────────────────────
 @Composable
-fun SetupScreen(onComplete: (GymInfo) -> Unit) {
+fun SetupScreen(onComplete: (GymInfo, String) -> Unit) {
     var gymName   by remember { mutableStateOf("") }
     var ownerName by remember { mutableStateOf("") }
     var phone     by remember { mutableStateOf("") }
     var address   by remember { mutableStateOf("") }
+    var pin       by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
 
-    val isValid = gymName.isNotBlank() && ownerName.isNotBlank() && phone.isNotBlank()
+    val isValid = gymName.isNotBlank() && ownerName.isNotBlank() && phone.isNotBlank() && 
+                  pin.length == 4 && pin == confirmPin
 
     Column(
         modifier = Modifier
@@ -162,12 +166,50 @@ fun SetupScreen(onComplete: (GymInfo) -> Unit) {
             singleLine = false,
             maxLines = 3
         )
+        Spacer(Modifier.height(24.dp))
+        
+        Text("Security PIN", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        Text("This PIN will be required to open the app.", style = MaterialTheme.typography.bodySmall, color = Zinc400)
+        Spacer(Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.weight(1f)) {
+                GymTextField(
+                    value = pin,
+                    onValueChange = { if (it.length <= 4) pin = it },
+                    label = "Set 4-Digit PIN",
+                    placeholder = "1234",
+                    leadingIcon = Icons.Default.Lock,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+            Box(Modifier.weight(1f)) {
+                GymTextField(
+                    value = confirmPin,
+                    onValueChange = { if (it.length <= 4) confirmPin = it },
+                    label = "Confirm PIN",
+                    placeholder = "1234",
+                    leadingIcon = Icons.Default.Lock,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+        }
+        
+        if (pin.isNotEmpty() && confirmPin.isNotEmpty() && pin != confirmPin) {
+            Text("PINs do not match", color = StatusUnpaid, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+        }
+
         Spacer(Modifier.height(32.dp))
 
         PrimaryButton(
             text = "Get Started",
             onClick = {
-                onComplete(GymInfo(gymName = gymName.trim(), ownerName = ownerName.trim(), phone = phone.trim(), address = address.trim()))
+                onComplete(
+                    GymInfo(gymName = gymName.trim(), ownerName = ownerName.trim(), phone = phone.trim(), address = address.trim()),
+                    pin
+                )
             },
             enabled = isValid,
             icon = Icons.Default.ArrowForward
