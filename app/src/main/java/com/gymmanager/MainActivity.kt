@@ -69,12 +69,9 @@ class MainActivity : FragmentActivity() {
                     // and ensure lifecycle observer handles backgrounding.
                     
                     // Security: Hide content in recent apps immediately if lock is enabled
+                    // Removed FLAG_SECURE to allow screenshots
                     SideEffect {
-                        if (appLockEnabled) {
-                            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                        } else {
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                        }
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     }
 
                     if (appSettings == null) {

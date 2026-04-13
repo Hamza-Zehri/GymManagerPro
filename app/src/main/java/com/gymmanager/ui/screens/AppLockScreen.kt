@@ -188,9 +188,11 @@ private fun Context.findActivity(): FragmentActivity? {
 fun tryBiometric(context: Context, onSuccess: () -> Unit) {
     val activity = context.findActivity() ?: return
     val biometricManager = BiometricManager.from(context)
-    val canAuth = biometricManager.canAuthenticate(
-        BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-    )
+    
+    // Only allow Strong Biometrics (Fingerprint/Face), exclude Device Credential (PIN/Pattern)
+    val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
+    
+    val canAuth = biometricManager.canAuthenticate(authenticators)
     if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) return
 
     val executor = ContextCompat.getMainExecutor(context)
@@ -201,10 +203,9 @@ fun tryBiometric(context: Context, onSuccess: () -> Unit) {
     })
     val promptInfo = BiometricPrompt.PromptInfo.Builder()
         .setTitle("Security Check")
-        .setSubtitle("Authenticate to continue")
-        .setAllowedAuthenticators(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        )
+        .setSubtitle("Use Fingerprint to unlock")
+        .setAllowedAuthenticators(authenticators)
+        .setNegativeButtonText("Use App PIN")
         .build()
     prompt.authenticate(promptInfo)
 }
