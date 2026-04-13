@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -16,7 +18,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.gymmanager.backup.AutoBackupWorker
 import com.gymmanager.ui.Screen
 import com.gymmanager.ui.screens.*
 import com.gymmanager.ui.theme.GymBgDark
@@ -31,14 +32,11 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        AutoBackupWorker.schedule(this)
 
         setContent {
             GymManagerTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = GymBgDark) {
-                    val appLockEnabled by dataStore.data.map { it[DataStoreKeys.APP_LOCK] ?: false }.collectAsState(false)
-                    val savedPin       by dataStore.data.map { it[DataStoreKeys.APP_PIN] ?: "" }.collectAsState("")
-                    
+                    val appSettings by dataStore.data.collectAsState(initial = null)
                     var unlocked by remember { mutableStateOf(false) }
 
                     // Reset unlocked state when app is backgrounded
@@ -55,8 +53,11 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
-                    // Security: Hide content in recent apps if lock is enabled
-                    LaunchedEffect(appLockEnabled) {
+                    val appLockEnabled = appSettings?.get(DataStoreKeys.APP_LOCK) ?: false
+                    val savedPin       = appSettings?.get(DataStoreKeys.APP_PIN) ?: ""
+
+                    // Security: Hide content in recent apps immediately if lock is enabled
+                    SideEffect {
                         if (appLockEnabled) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                         } else {
@@ -64,8 +65,14 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
-                    if (appLockEnabled && savedPin.isNotEmpty() && !unlocked) {
-                        AppLockScreen(savedPin = savedPin, onUnlocked = { unlocked = true })
+                    if (appSettings == null) {
+                        // Loading state - keep splash-like background to prevent peeking
+                        Box(Modifier.fillMaxSize().background(GymBgDark))
+                    } else if (appLockEnabled && savedPin.isNotEmpty() && !unlocked) {
+                        AppLockScreen(
+                            savedPin = savedPin,
+                            onUnlocked = { unlocked = true }
+                        )
                     } else {
                         GymApp(vm = vm)
                     }

@@ -1,6 +1,7 @@
 package com.gymmanager.ui.screens
 
 import android.app.Activity
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -19,10 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.common.api.ApiException
 import com.gymmanager.backup.DriveBackupManager
-import com.gymmanager.backup.GoogleSignInHelper
 import com.gymmanager.data.model.BackupLog
 import com.gymmanager.ui.components.*
 import com.gymmanager.ui.theme.*
@@ -40,7 +38,6 @@ fun BackupRestoreScreen(
     val scope = rememberCoroutineScope()
     val backupHistory by vm.backupHistory.collectAsState()
 
-    var isSignedIn     by remember { mutableStateOf(GoogleSignInHelper.isSignedIn(context)) }
     var isLoading      by remember { mutableStateOf(false) }
     var statusMessage  by remember { mutableStateOf<String?>(null) }
     var isError        by remember { mutableStateOf(false) }
@@ -48,74 +45,45 @@ fun BackupRestoreScreen(
 
     val driveManager = remember { DriveBackupManager(context) }
 
-    // Google sign-in launcher
-    val signInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            try {
-                GoogleSignIn.getSignedInAccountFromIntent(result.data).getResult(ApiException::class.java)
-                isSignedIn = true
-                statusMessage = "Signed in to Google successfully"
-                isError = false
-            } catch (e: ApiException) {
-                statusMessage = "Sign-in failed: ${e.message}"
-                isError = true
+    // File picker for restore
+    val filePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            scope.launch {
+                isLoading = true
+                statusMessage = "Restoring database from file..."
+                val res = driveManager.restoreFromUri(it)
+                isLoading = false
+                if (res.isSuccess) {
+                    statusMessage = "✅ Restore successful! Restart the app to see changes."
+                    isError = false
+                } else {
+                    statusMessage = "❌ Restore failed: ${res.exceptionOrNull()?.message}"
+                    isError = true
+                }
             }
         }
     }
-
-    fun signIn() { signInLauncher.launch(GoogleSignInHelper.getSignInIntent(context)) }
 
     fun backup() = scope.launch {
         isLoading = true
-        statusMessage = "Preparing database for backup…"
+        statusMessage = "Creating backup file…"
         isError = false
         try {
-            val res = driveManager.uploadBackup(vm.repo)
+            val res = driveManager.createBackupFile(vm.repo)
             isLoading = false
             if (res.isSuccess) {
-                statusMessage = "✅ Backup uploaded successfully to Google Drive"
+                val file = res.getOrThrow()
+                val intent = driveManager.getShareIntent(file)
+                context.startActivity(Intent.createChooser(intent, "Save Backup to..."))
+                statusMessage = "✅ Backup file created. Share it to Google Drive or other apps."
                 isError = false
             } else {
-                val error = res.exceptionOrNull()
-                statusMessage = "❌ Backup failed: ${error?.message ?: "Unknown error"}"
-                isError = true
-                error?.printStackTrace()
-            }
-        } catch (e: Exception) {
-            isLoading = false
-            statusMessage = "❌ Critical failure: ${e.message}"
-            isError = true
-            e.printStackTrace()
-        }
-    }
-
-    fun restore() = scope.launch {
-        isLoading = true
-        statusMessage = "Searching for latest backup on Drive…"
-        isError = false
-        try {
-            val res = driveManager.downloadLatestBackup(vm.repo)
-            if (res.isSuccess) {
-                statusMessage = "📥 Download complete. Applying changes…"
-                val file = res.getOrThrow()
-                val ok = driveManager.restoreDatabase(file)
-                isLoading = false
-                if (ok) {
-                    statusMessage = "✅ Restore successful! Please close and REOPEN the app to see your data."
-                    isError = false
-                } else {
-                    statusMessage = "❌ Failed to overwrite database file. Try manually."
-                    isError = true
-                }
-            } else {
-                isLoading = false
-                val error = res.exceptionOrNull()
-                statusMessage = "❌ Download failed: ${error?.message ?: "No backups found"}"
+                statusMessage = "❌ Backup failed: ${res.exceptionOrNull()?.message}"
                 isError = true
             }
         } catch (e: Exception) {
             isLoading = false
-            statusMessage = "❌ Restore error: ${e.message}"
+            statusMessage = "❌ Error: ${e.message}"
             isError = true
         }
     }
@@ -138,67 +106,13 @@ fun BackupRestoreScreen(
                         Icon(Icons.Default.Cloud, null, tint = Blue500, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text("Google Drive Backup", style = MaterialTheme.typography.titleSmall,
+                            Text("Manual Backup", style = MaterialTheme.typography.titleSmall,
                                 color = Color.White, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "Your gym data is automatically backed up to Google Drive when internet is available. " +
-                                "If you uninstall and reinstall the app, sign in with the same Google account and restore your data.",
+                                "Create a backup file and save it to your Google Drive, WhatsApp, or Email. " +
+                                "To recover data, download the file to your phone and use the Restore option.",
                                 style = MaterialTheme.typography.bodySmall, color = Color(0xFF93C5FD)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── GOOGLE ACCOUNT ──────────────────
-            item {
-                Surface(color = Zinc900, shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text("GOOGLE ACCOUNT", style = MaterialTheme.typography.labelSmall, color = Zinc400,
-                            modifier = Modifier.padding(bottom = 12.dp))
-                        if (isSignedIn) {
-                            val account = GoogleSignIn.getLastSignedInAccount(context)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color(0x1A10B981)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.AccountCircle, null, tint = Emerald400, modifier = Modifier.size(26.dp))
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(account?.displayName ?: "Google Account",
-                                        color = Color.White, style = MaterialTheme.typography.titleSmall)
-                                    Text(account?.email ?: "", color = Zinc400, style = MaterialTheme.typography.bodySmall)
-                                }
-                                Surface(color = Color(0x1A10B981), shape = RoundedCornerShape(8.dp)) {
-                                    Text("Connected", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall, color = Emerald400)
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        GoogleSignInHelper.signOut(context)
-                                        isSignedIn = false
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Zinc700)
-                            ) {
-                                Icon(Icons.Default.Logout, null, tint = Zinc400, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Sign Out", color = Zinc400)
-                            }
-                        } else {
-                            PrimaryButton(
-                                text = "Sign in with Google",
-                                onClick = { signIn() },
-                                icon = Icons.Default.AccountCircle,
-                                color = Blue500
                             )
                         }
                     }
@@ -228,7 +142,7 @@ fun BackupRestoreScreen(
             // ── BACKUP BUTTON ───────────────────
             item {
                 Button(
-                    onClick = { if (isSignedIn) backup() else signIn() },
+                    onClick = { backup() },
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth().height(72.dp),
                     shape = RoundedCornerShape(20.dp),
@@ -238,13 +152,13 @@ fun BackupRestoreScreen(
                         CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(12.dp))
                     } else {
-                        Icon(Icons.Default.CloudUpload, null, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Share, null, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                     }
                     Column {
-                        Text("Backup to Google Drive", style = MaterialTheme.typography.titleSmall,
+                        Text("Create & Share Backup", style = MaterialTheme.typography.titleSmall,
                             color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text(if (isSignedIn) "Upload current data to Drive" else "Sign in first",
+                        Text("Save database file to Drive/Cloud",
                             style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                     }
                 }
@@ -253,18 +167,18 @@ fun BackupRestoreScreen(
             // ── RESTORE BUTTON ──────────────────
             item {
                 Button(
-                    onClick = { if (isSignedIn) showRestoreConfirm = true else signIn() },
+                    onClick = { showRestoreConfirm = true },
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth().height(72.dp),
                     shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Zinc800)
                 ) {
-                    Icon(Icons.Default.CloudDownload, null, modifier = Modifier.size(24.dp), tint = Color(0xFF93C5FD))
+                    Icon(Icons.Default.FileOpen, null, modifier = Modifier.size(24.dp), tint = Color(0xFF93C5FD))
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("Restore from Google Drive", style = MaterialTheme.typography.titleSmall,
+                        Text("Restore from File", style = MaterialTheme.typography.titleSmall,
                             color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("Recover data from latest backup",
+                        Text("Select a backup file from your phone",
                             style = MaterialTheme.typography.labelSmall, color = Zinc400)
                     }
                 }
@@ -307,7 +221,7 @@ fun BackupRestoreScreen(
             title = { Text("Restore Data?", color = Color.White) },
             text = { Text("This will replace all current gym data with the latest backup from Google Drive. This action cannot be undone.", color = Zinc400) },
             confirmButton = {
-                TextButton(onClick = { showRestoreConfirm = false; restore() }) {
+                TextButton(onClick = { showRestoreConfirm = false; filePickerLauncher.launch("*/*") }) {
                     Text("Restore", color = Amber500, fontWeight = FontWeight.Bold)
                 }
             },

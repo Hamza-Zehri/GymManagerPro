@@ -58,8 +58,18 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
     var confirmPin      by remember { mutableStateOf("") }
     var pinError        by remember { mutableStateOf("") }
 
-    fun setWhatsapp(v: Boolean)   = scope.launch { context.dataStore.edit { it[DataStoreKeys.WHATSAPP_ENABLED] = v } }
-    fun setSms(v: Boolean)        = scope.launch { context.dataStore.edit { it[DataStoreKeys.SMS_ENABLED] = v } }
+    fun setWhatsapp(v: Boolean)   = scope.launch {
+        context.dataStore.edit {
+            it[DataStoreKeys.WHATSAPP_ENABLED] = v
+            if (v) it[DataStoreKeys.SMS_ENABLED] = false
+        }
+    }
+    fun setSms(v: Boolean)        = scope.launch {
+        context.dataStore.edit {
+            it[DataStoreKeys.SMS_ENABLED] = v
+            if (v) it[DataStoreKeys.WHATSAPP_ENABLED] = false
+        }
+    }
     fun setAutoBackup(v: Boolean) = scope.launch { context.dataStore.edit { it[DataStoreKeys.AUTO_BACKUP] = v } }
     fun setAppLock(v: Boolean)    = scope.launch {
         if (!v) {
@@ -114,7 +124,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         }
 
         // MESSAGING
-        SettingsSectionHeader("💬 MESSAGING")
+        SettingsSectionHeader("MESSAGING")
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Column {
@@ -127,7 +137,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         }
 
         // SUBSCRIPTION
-        SettingsSectionHeader("💳 SUBSCRIPTION PLANS")
+        SettingsSectionHeader("SUBSCRIPTION PLANS")
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             GymSettingsNavRow("Manage Plans", "Add or remove subscription plans",
@@ -135,7 +145,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         }
 
         // BACKUP
-        SettingsSectionHeader("☁️ BACKUP & DATA")
+        SettingsSectionHeader("BACKUP & DATA")
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Column {
@@ -148,7 +158,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         }
 
         // SECURITY
-        SettingsSectionHeader("🔒 SECURITY")
+        SettingsSectionHeader("SECURITY")
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Column {
@@ -163,7 +173,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
         }
 
         // ABOUT
-        SettingsSectionHeader("ℹ️ ABOUT")
+        SettingsSectionHeader("ABOUT")
         Surface(color = GymBgCard, shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
             Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -179,7 +189,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                 Spacer(Modifier.height(12.dp))
                 Text("Developed by", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                 Text("Engr. Hamza Asad", color = GymYellow, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                Text("Built for Pakistani Gym Owners 🇵🇰", fontSize = 11.sp, color = TextMuted)
+                Text("Built for Pakistani Gym Owners", fontSize = 11.sp, color = TextMuted)
             }
         }
     }

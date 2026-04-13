@@ -113,8 +113,9 @@ fun AppLockScreen(
                                                 errorMsg = ""
                                                 // Auto-submit when 4 digits entered
                                                 if (enteredPin.length == 4) {
-                                                    if (enteredPin == savedPin) onUnlocked()
-                                                    else {
+                                                    if (enteredPin == savedPin) {
+                                                        onUnlocked()
+                                                    } else {
                                                         attempts++
                                                         errorMsg = "Wrong PIN. Try again."
                                                         enteredPin = ""

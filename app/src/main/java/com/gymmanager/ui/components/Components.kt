@@ -125,22 +125,28 @@ fun ActionCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(24.dp)
+                .padding(12.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(56.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(32.dp))
+                Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(28.dp))
             }
-            Spacer(Modifier.height(16.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium, color = Color.White)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                fontSize = 15.sp,
+                maxLines = 1
+            )
         }
     }
 }
