@@ -33,6 +33,7 @@ fun MembersListScreen(
 ) {
     val members by vm.members.collectAsState()
     val searchQuery by vm.searchQuery.collectAsState()
+    val lastSyncTime by vm.lastSyncTime.collectAsState()
     var filterStatus by remember { mutableStateOf<MemberStatus?>(null) }
     var filterShift by remember { mutableStateOf<TimeShift?>(null) }
     var showFilters by remember { mutableStateOf(false) }
@@ -143,6 +144,7 @@ fun MembersListScreen(
                 items(filtered, key = { it.id }) { member ->
                     MemberListCard(
                         member = member,
+                        lastSyncTime = lastSyncTime,
                         onClick = {
                             vm.selectMember(member.id)
                             onNavigate(Screen.MemberProfile.createRoute(member.id))
@@ -173,7 +175,8 @@ fun MembersListScreen(
 //  MEMBER CARD ITEM
 // ─────────────────────────────────────────────
 @Composable
-fun MemberListCard(member: Member, onClick: () -> Unit) {
+fun MemberListCard(member: Member, lastSyncTime: Long, onClick: () -> Unit) {
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,6 +200,15 @@ fun MemberListCard(member: Member, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Sync Status Indicator
+                    val isSynced = member.updatedAt <= lastSyncTime
+                    Icon(
+                        if (isSynced) Icons.Default.CloudDone else Icons.Default.CloudQueue,
+                        null,
+                        modifier = Modifier.size(14.dp),
+                        tint = if (isSynced) Emerald500 else Amber500
+                    )
+
                     // Shift badge
                     val shiftLabel = when (member.timeShift) {
                         TimeShift.SHIFT_1    -> "☀️ 4 PM – 6 PM"

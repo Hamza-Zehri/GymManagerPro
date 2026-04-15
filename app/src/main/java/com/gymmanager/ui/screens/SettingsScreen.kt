@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +38,8 @@ import com.gymmanager.ui.theme.*
 import com.gymmanager.viewmodel.GymViewModel
 import com.gymmanager.dataStore
 import com.gymmanager.DataStoreKeys
+import com.gymmanager.data.model.Member
+import androidx.compose.foundation.lazy.items
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -46,6 +49,9 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
     val gymInfo by vm.gymInfo.collectAsState()
+    val blockedMembers by vm.blockedMembers.collectAsState()
+
+    var showBlockedList by remember { mutableStateOf(false) }
 
     val whatsappEnabled by context.dataStore.data.map { it[DataStoreKeys.WHATSAPP_ENABLED] ?: true }.collectAsState(true)
     val smsEnabled      by context.dataStore.data.map { it[DataStoreKeys.SMS_ENABLED] ?: false }.collectAsState(false)
@@ -98,7 +104,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                     verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack,
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(GymBgElevated)) {
-                        Icon(Icons.Default.ArrowBack, null, tint = GymYellow)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = GymYellow)
                     }
                     Spacer(Modifier.width(12.dp))
                     Text("Settings", style = MaterialTheme.typography.titleLarge,
@@ -161,6 +167,9 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                 HorizontalDivider(color = GymBgBorder, modifier = Modifier.padding(horizontal = 16.dp))
                 GymSettingsNavRow("Backup & Restore", "Manual backup or restore from file",
                     Icons.Default.CloudUpload, Color(0xFF0277BD)) { onNavigate(Screen.BackupRestore.route) }
+                HorizontalDivider(color = GymBgBorder, modifier = Modifier.padding(horizontal = 16.dp))
+                GymSettingsNavRow("Offline Sync", "Sync data between devices via Hotspot",
+                    Icons.Default.Sync, GymYellow) { onNavigate(Screen.Sync.route) }
             }
         }
 
@@ -176,6 +185,9 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                     GymSettingsNavRow("Change PIN", "Update your 4-digit app lock PIN",
                         Icons.Default.Pin, GymGrey) { showPinDialog = true }
                 }
+                HorizontalDivider(color = GymBgBorder, modifier = Modifier.padding(horizontal = 16.dp))
+                GymSettingsNavRow("Blocked Members", "View and unblock members",
+                    Icons.Default.Block, StatusUnpaid) { showBlockedList = true }
             }
         }
 
@@ -260,6 +272,43 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                 }
             }
         )
+    }
+
+    // Blocked Members Sheet
+    if (showBlockedList) {
+        ModalBottomSheet(onDismissRequest = { showBlockedList = false }, containerColor = GymBgCard) {
+            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp).fillMaxHeight(0.8f)) {
+                Text("Blocked Members", style = MaterialTheme.typography.titleLarge,
+                    color = GymYellow, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(16.dp))
+                if (blockedMembers.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No blocked members", color = TextMuted)
+                    }
+                } else {
+                    androidx.compose.foundation.lazy.LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(blockedMembers) { member ->
+                            Surface(color = GymBgElevated, shape = RoundedCornerShape(12.dp)) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(member.name, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                        Text(member.cnic, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    Button(
+                                        onClick = { vm.toggleBlockMember(member.id, false) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = GymGreen),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp)
+                                    ) {
+                                        Text("Unblock", color = Color.White, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

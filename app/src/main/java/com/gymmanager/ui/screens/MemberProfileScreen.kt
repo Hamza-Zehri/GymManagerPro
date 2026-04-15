@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.map
 fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val member by vm.selectedMember.collectAsState()
+    val lastSyncTime by vm.lastSyncTime.collectAsState()
     val m = member ?: return
 
     val payments   by vm.getMemberPayments(m.id).collectAsState(emptyList())
@@ -92,11 +94,16 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                 ) {
                     IconButton(onClick = onBack,
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(GymBgElevated)) {
-                        Icon(Icons.Default.ArrowBack, null, tint = GymYellow)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = GymYellow)
                     }
                     Spacer(Modifier.width(12.dp))
                     Text("Member Profile", style = MaterialTheme.typography.titleLarge,
                         color = TextPrimary, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { vm.toggleBlockMember(m.id, !m.isBlocked) },
+                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (m.isBlocked) Color(0x1A4CAF50) else Color(0x1AEF5350))) {
+                        Icon(if (m.isBlocked) Icons.Default.LockOpen else Icons.Default.Block, null, tint = if (m.isBlocked) GymGreenBright else StatusUnpaid)
+                    }
+                    Spacer(Modifier.width(8.dp))
                     IconButton(onClick = { onNavigate(Screen.EditMember.createRoute(m.id)) },
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color(0x1AFFD600))) {
                         Icon(Icons.Default.Edit, null, tint = GymYellow)
@@ -152,9 +159,16 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                                 MemberStatus.UNPAID  -> Triple("✗ Payment Pending", Color(0x1AEF5350), StatusUnpaid)
                                 MemberStatus.PARTIAL -> Triple("◑ Partial Payment", Color(0x1AFFD600), StatusPartial)
                             }
-                            Surface(color = statusBg, shape = RoundedCornerShape(8.dp)) {
-                                Text(statusText, modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
-                                    style = MaterialTheme.typography.labelMedium, color = statusFg, fontWeight = FontWeight.Bold)
+                            if (m.isBlocked) {
+                                Surface(color = Color(0x1AEF5350), shape = RoundedCornerShape(8.dp)) {
+                                    Text("BLOCKED", modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        style = MaterialTheme.typography.labelMedium, color = StatusUnpaid, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                Surface(color = statusBg, shape = RoundedCornerShape(8.dp)) {
+                                    Text(statusText, modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        style = MaterialTheme.typography.labelMedium, color = statusFg, fontWeight = FontWeight.Bold)
+                                }
                             }
                             // Shift badge
                             Surface(color = GymBgElevated, shape = RoundedCornerShape(8.dp)) {
@@ -166,6 +180,21 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                                     TimeShift.CUSTOM    -> "🕐 ${m.customShiftTime ?: "Custom"}"
                                 }, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                     style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                            }
+                            // Sync status badge
+                            val isSynced = m.updatedAt <= lastSyncTime
+                            Surface(color = if (isSynced) Color(0x1A4CAF50) else Color(0x1AFFD600), shape = RoundedCornerShape(8.dp)) {
+                                Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (isSynced) Icons.Default.CloudDone else Icons.Default.CloudQueue,
+                                        null, modifier = Modifier.size(14.dp),
+                                        tint = if (isSynced) GymGreenBright else GymYellow
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(if (isSynced) "Synced" else "Pending",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isSynced) GymGreenBright else GymYellow)
+                                }
                             }
                         }
                     }
@@ -233,10 +262,7 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                                 color = TextSecondary, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.height(12.dp))
-                        if (m.age > 0)            FeeRow("Age",     "${m.age} years", TextSecondary)
-                        if (m.weight.isNotBlank()) FeeRow("Weight",  "${m.weight} kg", TextSecondary)
-                        if (m.height.isNotBlank()) FeeRow("Height",  "${m.height} cm", TextSecondary)
-                        if (m.goal.isNotBlank())   FeeRow("Goal",    m.goal, TextSecondary)
+                        FeeRow("CNIC", m.cnic, TextPrimary, isBold = true)
                         if (m.address.isNotBlank()) FeeRow("Address", m.address, TextSecondary)
                         FeeRow("Joined", DateUtils.displayDate(m.joinDate), TextSecondary)
                     }

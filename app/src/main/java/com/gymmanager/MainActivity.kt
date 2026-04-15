@@ -10,25 +10,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavType
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.datastore.preferences.core.edit
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import kotlinx.coroutines.launch
 import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.launch
 import com.gymmanager.ui.Screen
 import com.gymmanager.ui.screens.*
 import com.gymmanager.ui.theme.GymBgDark
 import com.gymmanager.ui.theme.GymManagerTheme
 import com.gymmanager.viewmodel.GymViewModel
-import kotlinx.coroutines.flow.map
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 
 class MainActivity : FragmentActivity() {
 
@@ -57,6 +55,19 @@ class MainActivity : FragmentActivity() {
             }
         })
 
+        // Request permissions for WiFi Sync and Camera
+        val requiredPermissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.CAMERA
+        )
+        val missingPermissions = requiredPermissions.filter {
+            ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missingPermissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missingPermissions.toTypedArray(), 100)
+        }
+
         setContent {
             GymManagerTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = GymBgDark) {
@@ -65,9 +76,6 @@ class MainActivity : FragmentActivity() {
                     val appLockEnabled = appSettings?.get(DataStoreKeys.APP_LOCK) ?: false
                     val savedPin       = appSettings?.get(DataStoreKeys.APP_PIN) ?: ""
 
-                    // Force unlock to false when app is explicitly started from launcher
-                    // and ensure lifecycle observer handles backgrounding.
-                    
                     // Security: Hide content in recent apps immediately if lock is enabled
                     // Removed FLAG_SECURE to allow screenshots
                     SideEffect {
@@ -129,8 +137,8 @@ fun GymApp(vm: GymViewModel) {
         }
 
         composable(Screen.EditMember.route,
-            arguments = listOf(navArgument("memberId") { type = NavType.LongType })) { entry ->
-            val id = entry.arguments?.getLong("memberId") ?: return@composable
+            arguments = listOf(navArgument("memberId") { type = NavType.StringType })) { entry ->
+            val id = entry.arguments?.getString("memberId") ?: return@composable
             LaunchedEffect(id) { vm.selectMember(id) }
             EditMemberScreen(vm = vm, onBack = { navController.popBackStack() })
         }
@@ -142,8 +150,8 @@ fun GymApp(vm: GymViewModel) {
         }
 
         composable(Screen.MemberProfile.route,
-            arguments = listOf(navArgument("memberId") { type = NavType.LongType })) { entry ->
-            val id = entry.arguments?.getLong("memberId") ?: return@composable
+            arguments = listOf(navArgument("memberId") { type = NavType.StringType })) { entry ->
+            val id = entry.arguments?.getString("memberId") ?: return@composable
             LaunchedEffect(id) { vm.selectMember(id) }
             MemberProfileScreen(vm = vm,
                 onNavigate = { navController.navigate(it) },
@@ -179,6 +187,10 @@ fun GymApp(vm: GymViewModel) {
 
         composable(Screen.BackupRestore.route) {
             BackupRestoreScreen(vm = vm, onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Sync.route) {
+            SyncScreen(vm = vm, onBack = { navController.popBackStack() })
         }
     }
 }
