@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.Flow
 // ─────────────────────────────────────────────
 @Dao
 interface GymInfoDao {
-    @Query("SELECT * FROM gym_info WHERE id = 1 LIMIT 1")
+    @Query("SELECT * FROM gym_info LIMIT 1")
     fun getGymInfo(): Flow<GymInfo?>
 
-    @Query("SELECT * FROM gym_info WHERE id = 1 LIMIT 1")
+    @Query("SELECT * FROM gym_info LIMIT 1")
     suspend fun getGymInfoOnce(): GymInfo?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -28,16 +28,19 @@ interface SubscriptionPlanDao {
     fun getAllPlans(): Flow<List<SubscriptionPlan>>
 
     @Query("SELECT * FROM subscription_plans WHERE id = :id")
-    suspend fun getPlanById(id: Long): SubscriptionPlan?
+    suspend fun getPlanById(id: String): SubscriptionPlan?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPlan(plan: SubscriptionPlan): Long
+    suspend fun insertPlan(plan: SubscriptionPlan)
 
     @Update
     suspend fun updatePlan(plan: SubscriptionPlan)
 
-    @Query("UPDATE subscription_plans SET isActive = 0 WHERE id = :id")
-    suspend fun deletePlan(id: Long)
+    @Query("UPDATE subscription_plans SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun deletePlan(id: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM subscription_plans WHERE updatedAt > :lastSync")
+    suspend fun getChanges(lastSync: Long): List<SubscriptionPlan>
 }
 
 // ─────────────────────────────────────────────
@@ -45,53 +48,62 @@ interface SubscriptionPlanDao {
 // ─────────────────────────────────────────────
 @Dao
 interface MemberDao {
-    @Query("SELECT * FROM members WHERE isActive = 1 ORDER BY name ASC")
+    @Query("SELECT * FROM members WHERE isDeleted = 0 AND isBlocked = 0 ORDER BY name ASC")
     fun getAllMembers(): Flow<List<Member>>
 
-    @Query("SELECT * FROM members WHERE isActive = 1 ORDER BY name ASC")
+    @Query("SELECT * FROM members WHERE isDeleted = 0 AND isBlocked = 0 ORDER BY name ASC")
     suspend fun getAllMembersOnce(): List<Member>
 
     @Query("SELECT * FROM members WHERE id = :id")
-    fun getMemberById(id: Long): Flow<Member?>
+    fun getMemberById(id: String): Flow<Member?>
 
     @Query("SELECT * FROM members WHERE id = :id")
-    suspend fun getMemberByIdOnce(id: Long): Member?
+    suspend fun getMemberByIdOnce(id: String): Member?
 
     @Query("""
         SELECT * FROM members 
-        WHERE isActive = 1 AND (name LIKE '%' || :query || '%' OR phone LIKE '%' || :query || '%')
+        WHERE isDeleted = 0 AND isBlocked = 0 AND (name LIKE '%' || :query || '%' OR phone LIKE '%' || :query || '%' OR cnic LIKE '%' || :query || '%')
         ORDER BY name ASC
     """)
     fun searchMembers(query: String): Flow<List<Member>>
 
-    @Query("SELECT COUNT(*) FROM members WHERE isActive = 1")
+    @Query("SELECT COUNT(*) FROM members WHERE isDeleted = 0 AND isBlocked = 0")
     fun getTotalMemberCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM members WHERE isActive = 1 AND status = 'PAID'")
+    @Query("SELECT COUNT(*) FROM members WHERE isDeleted = 0 AND isBlocked = 0 AND status = 'PAID'")
     fun getActivePaidCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM members WHERE isActive = 1 AND status != 'PAID'")
+    @Query("SELECT COUNT(*) FROM members WHERE isDeleted = 0 AND isBlocked = 0 AND status != 'PAID'")
     fun getPendingCount(): Flow<Int>
 
-    @Query("SELECT * FROM members WHERE isActive = 1 AND timeShift = :shift ORDER BY name ASC")
+    @Query("SELECT * FROM members WHERE isDeleted = 0 AND isBlocked = 0 AND timeShift = :shift ORDER BY name ASC")
     fun getMembersByShift(shift: TimeShift): Flow<List<Member>>
 
-    @Query("SELECT SUM(amountDue) FROM members WHERE isActive = 1")
+    @Query("SELECT SUM(amountDue) FROM members WHERE isDeleted = 0 AND isBlocked = 0")
     fun getTotalDue(): Flow<Double?>
 
+    @Query("SELECT * FROM members WHERE cnic = :cnic LIMIT 1")
+    suspend fun getMemberByCnic(cnic: String): Member?
+
+    @Query("SELECT * FROM members WHERE isBlocked = 1 AND isDeleted = 0")
+    fun getBlockedMembers(): Flow<List<Member>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMember(member: Member): Long
+    suspend fun insertMember(member: Member)
 
     @Update
     suspend fun updateMember(member: Member)
 
-    // Soft delete
-    @Query("UPDATE members SET isActive = 0 WHERE id = :id")
-    suspend fun deleteMember(id: Long)
+    // Soft delete for sync
+    @Query("UPDATE members SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun deleteMember(id: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM members WHERE updatedAt > :lastSync")
+    suspend fun getChanges(lastSync: Long): List<Member>
 
     // Hard delete (for data wipe)
     @Query("DELETE FROM members WHERE id = :id")
-    suspend fun hardDeleteMember(id: Long)
+    suspend fun hardDeleteMember(id: String)
 }
 
 // ─────────────────────────────────────────────
@@ -102,20 +114,26 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance WHERE date = :date ORDER BY checkInTime DESC")
     fun getAttendanceByDate(date: String): Flow<List<Attendance>>
 
-    @Query("SELECT * FROM attendance WHERE memberId = :memberId ORDER BY date DESC LIMIT 30")
-    fun getMemberAttendance(memberId: Long): Flow<List<Attendance>>
+    @Query("SELECT * FROM attendance WHERE memberId = :memberId AND isDeleted = 0 ORDER BY date DESC LIMIT 30")
+    fun getMemberAttendance(memberId: String): Flow<List<Attendance>>
 
-    @Query("SELECT * FROM attendance WHERE memberId = :memberId AND date = :date LIMIT 1")
-    suspend fun getAttendanceRecord(memberId: Long, date: String): Attendance?
+    @Query("SELECT * FROM attendance WHERE memberId = :memberId AND date = :date AND isDeleted = 0 LIMIT 1")
+    suspend fun getAttendanceRecord(memberId: String, date: String): Attendance?
 
-    @Query("SELECT COUNT(*) FROM attendance WHERE memberId = :memberId AND date LIKE :monthPrefix || '%'")
-    suspend fun getMonthlyAttendanceCount(memberId: Long, monthPrefix: String): Int
+    @Query("SELECT COUNT(*) FROM attendance WHERE memberId = :memberId AND date LIKE :monthPrefix || '%' AND isDeleted = 0")
+    suspend fun getMonthlyAttendanceCount(memberId: String, monthPrefix: String): Int
+
+    @Query("SELECT * FROM attendance WHERE id = :id")
+    suspend fun getAttendanceRecordById(id: String): Attendance?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAttendance(attendance: Attendance)
 
-    @Query("DELETE FROM attendance WHERE id = :id")
-    suspend fun deleteAttendance(id: Long)
+    @Query("UPDATE attendance SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun deleteAttendance(id: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM attendance WHERE updatedAt > :lastSync")
+    suspend fun getChanges(lastSync: Long): List<Attendance>
 }
 
 // ─────────────────────────────────────────────
@@ -126,17 +144,23 @@ interface PaymentDao {
     @Query("SELECT * FROM payments ORDER BY paymentDate DESC")
     fun getAllPayments(): Flow<List<Payment>>
 
-    @Query("SELECT * FROM payments WHERE memberId = :memberId ORDER BY paymentDate DESC")
-    fun getMemberPayments(memberId: Long): Flow<List<Payment>>
+    @Query("SELECT * FROM payments WHERE memberId = :memberId AND isDeleted = 0 ORDER BY paymentDate DESC")
+    fun getMemberPayments(memberId: String): Flow<List<Payment>>
 
-    @Query("SELECT SUM(amount) FROM payments WHERE strftime('%Y-%m', datetime(paymentDate/1000,'unixepoch')) = :yearMonth")
+    @Query("SELECT SUM(amount) FROM payments WHERE isDeleted = 0 AND strftime('%Y-%m', datetime(paymentDate/1000,'unixepoch')) = :yearMonth")
     suspend fun getMonthlyRevenue(yearMonth: String): Double?
 
-    @Insert
-    suspend fun insertPayment(payment: Payment): Long
+    @Query("SELECT * FROM payments WHERE id = :id")
+    suspend fun getPaymentById(id: String): Payment?
 
-    @Query("DELETE FROM payments WHERE id = :id")
-    suspend fun deletePayment(id: Long)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPayment(payment: Payment)
+
+    @Query("UPDATE payments SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun deletePayment(id: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM payments WHERE updatedAt > :lastSync")
+    suspend fun getChanges(lastSync: Long): List<Payment>
 }
 
 // ─────────────────────────────────────────────
@@ -144,20 +168,26 @@ interface PaymentDao {
 // ─────────────────────────────────────────────
 @Dao
 interface ExpenseDao {
-    @Query("SELECT * FROM expenses ORDER BY date DESC")
+    @Query("SELECT * FROM expenses WHERE isDeleted = 0 ORDER BY date DESC")
     fun getAllExpenses(): Flow<List<Expense>>
 
-    @Query("SELECT SUM(amount) FROM expenses WHERE strftime('%Y-%m', datetime(date/1000,'unixepoch')) = :yearMonth")
+    @Query("SELECT SUM(amount) FROM expenses WHERE isDeleted = 0 AND strftime('%Y-%m', datetime(date/1000,'unixepoch')) = :yearMonth")
     suspend fun getMonthlyExpenses(yearMonth: String): Double?
 
-    @Insert
-    suspend fun insertExpense(expense: Expense): Long
+    @Query("SELECT * FROM expenses WHERE id = :id")
+    suspend fun getExpenseById(id: String): Expense?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExpense(expense: Expense)
 
     @Update
     suspend fun updateExpense(expense: Expense)
 
-    @Query("DELETE FROM expenses WHERE id = :id")
-    suspend fun deleteExpense(id: Long)
+    @Query("UPDATE expenses SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun deleteExpense(id: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM expenses WHERE updatedAt > :lastSync")
+    suspend fun getChanges(lastSync: Long): List<Expense>
 }
 
 // ─────────────────────────────────────────────

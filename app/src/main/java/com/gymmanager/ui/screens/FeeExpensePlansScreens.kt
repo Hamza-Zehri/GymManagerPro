@@ -31,7 +31,7 @@ import com.gymmanager.viewmodel.GymViewModel
 @Composable
 fun FeeManagementScreen(
     vm: GymViewModel,
-    onMemberClick: (Long) -> Unit,
+    onMemberClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
     val members by vm.members.collectAsState()
@@ -114,7 +114,8 @@ fun FeeManagementScreen(
 fun ExpensesScreen(vm: GymViewModel, onBack: () -> Unit) {
     val expenses by vm.expenses.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    var deleteId     by remember { mutableStateOf<Long?>(null) }
+    var deleteId     by remember { mutableStateOf<String?>(null) }
+
 
     // Add form state
     var desc     by remember { mutableStateOf("") }
@@ -197,6 +198,7 @@ fun ExpensesScreen(vm: GymViewModel, onBack: () -> Unit) {
         }
     }
 
+
     // Add expense sheet
     if (showAddSheet) {
         ModalBottomSheet(onDismissRequest = { showAddSheet = false }, containerColor = Zinc900) {
@@ -270,13 +272,15 @@ fun ExpensesScreen(vm: GymViewModel, onBack: () -> Unit) {
 fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
     val plans by vm.plans.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    var deleteId     by remember { mutableStateOf<Long?>(null) }
+    var deleteId     by remember { mutableStateOf<String?>(null) }
+
 
     // Form
     var planName  by remember { mutableStateOf("") }
     var duration  by remember { mutableStateOf("") }
     var price     by remember { mutableStateOf("") }
     var planDesc  by remember { mutableStateOf("") }
+
 
     Column(Modifier.fillMaxSize().background(Zinc950)) {
         GymTopBar(title = "Subscription Plans", onBack = onBack) {
@@ -340,8 +344,15 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
                     text = "Add Plan",
                     enabled = planName.isNotBlank() && duration.toIntOrNull() != null && price.toDoubleOrNull() != null,
                     onClick = {
-                        vm.addPlan(SubscriptionPlan(name = planName.trim(), durationDays = duration.toInt(),
-                            price = price.toDouble(), description = planDesc.trim()))
+                        val now = System.currentTimeMillis()
+                        vm.addPlan(SubscriptionPlan(
+                            name = planName.trim(), 
+                            durationDays = duration.toInt(),
+                            price = price.toDouble(), 
+                            description = planDesc.trim(),
+                            updatedAt = now,
+                            deviceId = "local" // Ideally from VM, but for now
+                        ))
                         showAddSheet = false; planName = ""; duration = ""; price = ""; planDesc = ""
                     },
                     icon = Icons.Default.Check
@@ -356,4 +367,5 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
             onDismiss = { deleteId = null })
     }
 }
+
 

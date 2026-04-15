@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,45 +31,42 @@ import com.gymmanager.data.model.Member
 import com.gymmanager.ui.components.*
 import com.gymmanager.ui.theme.*
 import com.gymmanager.viewmodel.GymViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
     val member by vm.selectedMember.collectAsState()
     val plans by vm.plans.collectAsState()
+    val scope = rememberCoroutineScope()
 
     // Form state
     var name          by remember { mutableStateOf("") }
     var phone         by remember { mutableStateOf("") }
+    var cnic          by remember { mutableStateOf("") }
     var address       by remember { mutableStateOf("") }
-    var ageStr        by remember { mutableStateOf("") }
-    var weight        by remember { mutableStateOf("") }
-    var height        by remember { mutableStateOf("") }
-    var goal          by remember { mutableStateOf("") }
     var photoUri      by remember { mutableStateOf<String?>(null) }
+    var isBlocked     by remember { mutableStateOf(false) }
     var selectedShift by remember { mutableStateOf(TimeShift.SHIFT_1) }
     var customTime    by remember { mutableStateOf("") }
     var selectedPlan  by remember { mutableStateOf<SubscriptionPlan?>(null) }
     var customFee     by remember { mutableStateOf("") }
     var showPlanSheet by remember { mutableStateOf(false) }
-    var notes         by remember { mutableStateOf("") }
+    var errorMessage  by remember { mutableStateOf<String?>(null) }
 
     // Initialize form with member data
     LaunchedEffect(member) {
         member?.let { m ->
             name = m.name
             phone = m.phone
+            cnic = m.cnic
             address = m.address
-            ageStr = m.age.toString()
-            weight = m.weight
-            height = m.height
-            goal = m.goal
+            isBlocked = m.isBlocked
             photoUri = m.photoUri
             selectedShift = m.timeShift
             customTime = m.customShiftTime ?: ""
             selectedPlan = plans.find { it.id == m.planId }
             customFee = m.totalFee.toString()
-            notes = m.notes
         }
     }
 
@@ -76,7 +74,25 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
         uri?.let { photoUri = it.toString() }
     }
 
-    val isValid = name.isNotBlank() && phone.isNotBlank()
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        bitmap?.let {
+            val context = vm.getApplication<android.app.Application>().applicationContext
+            val path = com.gymmanager.utils.FileUtils.saveBitmapToInternalStorage(context, it, "temp_edit_${System.currentTimeMillis()}")
+            photoUri = path
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
+
+    var showImageSourceSheet by remember { mutableStateOf(false) }
+
+    val isValid = name.isNotBlank() && phone.isNotBlank() && cnic.isNotBlank()
     val totalFee = selectedPlan?.price ?: customFee.toDoubleOrNull() ?: 0.0
 
     Column(
@@ -97,7 +113,7 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
                     onClick = onBack,
                     modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(GymBgElevated)
                 ) {
-                    Icon(Icons.Default.ArrowBack, null, tint = GymYellow)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = GymYellow)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
@@ -122,7 +138,7 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
                     .size(110.dp)
                     .clip(RoundedCornerShape(55.dp))
                     .background(GymBgElevated)
-                    .clickable { imageLauncher.launch("image/*") },
+                    .clickable { showImageSourceSheet = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (photoUri != null) {
@@ -151,41 +167,66 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
                 label = "Phone Number *", placeholder = "+92 300 1234567", leadingIcon = Icons.Default.Phone,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GymTextField(value = ageStr, onValueChange = { ageStr = it },
-                    label = "Age", placeholder = "25",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f))
-                GymTextField(value = weight, onValueChange = { weight = it },
-                    label = "Weight (kg)", placeholder = "75",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f))
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GymTextField(value = height, onValueChange = { height = it },
-                    label = "Height (cm)", placeholder = "175",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f))
-                GymTextField(value = goal, onValueChange = { goal = it },
-                    label = "Fitness Goal", placeholder = "Build muscle",
-                    modifier = Modifier.weight(1f))
-            }
+            GymTextField(value = cnic, onValueChange = { cnic = it },
+                label = "CNIC *", placeholder = "12345-1234567-1", leadingIcon = Icons.Default.Badge,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
 
             GymTextField(value = address, onValueChange = { address = it },
                 label = "Address", placeholder = "Member address",
                 leadingIcon = Icons.Default.LocationOn, singleLine = false, maxLines = 2)
 
-            GymTextField(value = notes, onValueChange = { notes = it },
-                label = "Notes (Optional)", placeholder = "Any special notes",
-                leadingIcon = Icons.Default.Note, singleLine = false, maxLines = 2)
+            if (errorMessage != null) {
+                Surface(color = Color(0x33FF5252), shape = RoundedCornerShape(12.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Error, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(errorMessage!!, color = Color.Red,
+                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            HorizontalDivider(color = GymBgBorder)
+
+            SectionLabel("ACCOUNT STATUS")
+            Surface(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { isBlocked = !isBlocked },
+                color = if (isBlocked) Color(0x33FF5252) else GymBgCard,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (isBlocked) Icons.Default.Block else Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (isBlocked) Color.Red else Color.Green,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(if (isBlocked) "Blocked" else "Active", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (isBlocked) "Member is restricted from gym access" else "Member has active access",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Switch(
+                        checked = isBlocked,
+                        onCheckedChange = { isBlocked = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.Red,
+                            checkedTrackColor = Color(0x66FF5252)
+                        )
+                    )
+                }
+            }
 
             HorizontalDivider(color = GymBgBorder)
 
             SectionLabel("GYM TIME SHIFT")
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TimeShift.values().forEach { shift ->
+                TimeShift.entries.forEach { shift ->
                     val isSelected = selectedShift == shift
                     Surface(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { selectedShift = shift },
@@ -213,6 +254,12 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
+                }
+                if (selectedShift == TimeShift.CUSTOM) {
+                    GymTextField(value = customTime, onValueChange = { customTime = it },
+                        label = "Custom Time", placeholder = "e.g. 05:30 AM",
+                        leadingIcon = Icons.Default.AccessTime,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
             }
 
@@ -242,17 +289,27 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
             Button(
                 onClick = {
                     member?.let { m ->
-                        val updated = m.copy(
-                            name = name, phone = phone, address = address,
-                            age = ageStr.toIntOrNull() ?: 0, weight = weight, height = height,
-                            goal = goal, photoUri = photoUri, timeShift = selectedShift,
-                            customShiftTime = if (selectedShift == TimeShift.CUSTOM) customTime else null,
-                            planId = selectedPlan?.id, planName = selectedPlan?.name ?: m.planName,
-                            totalFee = totalFee, amountDue = (totalFee - m.amountPaid).coerceAtLeast(0.0),
-                            notes = notes
-                        )
-                        vm.updateMember(updated)
-                        onBack()
+                        scope.launch {
+                            val trimmedCnic = cnic.trim()
+                            if (trimmedCnic != m.cnic) {
+                                val existing = vm.checkCnicExists(trimmedCnic)
+                                if (existing != null) {
+                                    errorMessage = "This CNIC is already registered to another member."
+                                    return@launch
+                                }
+                            }
+                            
+                            val updated = m.copy(
+                                name = name, phone = phone, cnic = trimmedCnic, address = address,
+                                isBlocked = isBlocked,
+                                photoUri = photoUri, timeShift = selectedShift,
+                                customShiftTime = if (selectedShift == TimeShift.CUSTOM) customTime else null,
+                                planId = selectedPlan?.id, planName = selectedPlan?.name ?: m.planName,
+                                totalFee = totalFee, amountDue = (totalFee - m.amountPaid).coerceAtLeast(0.0)
+                            )
+                            vm.updateMember(updated)
+                            onBack()
+                        }
                     }
                 },
                 enabled = isValid,
@@ -288,6 +345,42 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+
+    // Image Source Selection
+    if (showImageSourceSheet) {
+        ModalBottomSheet(onDismissRequest = { showImageSourceSheet = false }, containerColor = GymBgCard) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+                Text("Select Profile Photo", style = MaterialTheme.typography.titleMedium, color = GymYellow, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { 
+                        val context = vm.getApplication<android.app.Application>().applicationContext
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            cameraLauncher.launch(null)
+                        } else {
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                        showImageSourceSheet = false 
+                    }) {
+                        Box(Modifier.size(60.dp).clip(RoundedCornerShape(30.dp)).background(GymBgElevated), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.CameraAlt, null, tint = GymYellow)
+                        }
+                        Text("Camera", color = TextPrimary, style = MaterialTheme.typography.labelMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { 
+                        imageLauncher.launch("image/*")
+                        showImageSourceSheet = false 
+                    }) {
+                        Box(Modifier.size(60.dp).clip(RoundedCornerShape(30.dp)).background(GymBgElevated), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.PhotoLibrary, null, tint = GymYellow)
+                        }
+                        Text("Gallery", color = TextPrimary, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                Spacer(Modifier.height(40.dp))
             }
         }
     }

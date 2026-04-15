@@ -70,7 +70,7 @@ fun AttendanceScreen(
             item {
                 ShiftChip("All Shifts", selectedShift == null) { selectedShift = null }
             }
-            items(TimeShift.values()) { shift ->
+            items(TimeShift.entries) { shift ->
                 val label = when(shift) {
                     TimeShift.SHIFT_1   -> "☀️ 4 PM – 6 PM"
                     TimeShift.SHIFT_2   -> "🌤 6 PM – 8 PM"

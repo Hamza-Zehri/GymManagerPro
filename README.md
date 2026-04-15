@@ -3,7 +3,28 @@
 A **complete, production-ready Android gym management system** built with Jetpack Compose,
 Room SQLite, and an automated manual-first backup system. Based on the Figma UI design by Engr. Hamza Asad.
 
+---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="Assets/applock.png" width="200" />
+  <img src="Assets/photo0.png" width="200" />
+  <img src="Assets/photo1.png" width="200" />
+  <img src="Assets/photo2.png" width="200" />
+</p>
+<p align="center">
+  <img src="Assets/photo3.png" width="200" />
+  <img src="Assets/photo4.png" width="200" />
+  <img src="Assets/photo5.png" width="200" />
+  <img src="Assets/photo6.png" width="200" />
+</p>
+<p align="center">
+  <img src="Assets/photo7.png" width="200" />
+  <img src="Assets/settings.png" width="200" />
+</p>
+
+---
 
 ## ✅ Key Features
 
@@ -110,20 +131,3 @@ Android implementation: Jetpack Compose + Material3 dark theme
 - **Biometric**: Secure fingerprint authentication.
 - **DataStore**: Lightweight reactive settings storage.
 - **Material3**: Latest Google design system.
-
-  ---
-
-## 📸 Screenshots
-
-<p align="center">
-  <img src="Assets/applock.png" width="200" />
-  <img src="Assets/photo0.png" width="200" />
-  <img src="Assets/photo5.png" width="200" />
-  <img src="Assets/photo6.png" width="200" />
-</p>
-<p align="center">
-  <img src="Assets/photo7.png" width="200" />
-  <img src="Assets/settings.png" width="200" />
-</p>
-
----

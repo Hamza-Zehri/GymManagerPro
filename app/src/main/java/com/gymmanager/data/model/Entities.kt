@@ -4,33 +4,45 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
+import java.util.UUID
 
 // ─────────────────────────────────────────────
 //  GYM INFO
 // ─────────────────────────────────────────────
+@Serializable
 @Entity(tableName = "gym_info")
 data class GymInfo(
-    @PrimaryKey val id: Int = 1,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val gymName: String,
     val ownerName: String,
     val phone: String,
     val address: String,
     val logoUri: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0
 )
 
 // ─────────────────────────────────────────────
 //  SUBSCRIPTION PLANS
 // ─────────────────────────────────────────────
+@Serializable
 @Entity(tableName = "subscription_plans")
 data class SubscriptionPlan(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
     val durationDays: Int,
     val price: Double,
     val description: String = "",
     val isActive: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0
 )
 
 // ─────────────────────────────────────────────
@@ -45,23 +57,24 @@ enum class TimeShift(val label: String, val startHour: Int) {
     CUSTOM("Custom Time", -1)
 }
 
-@Entity(tableName = "members")
+@Serializable
+@Entity(
+    tableName = "members",
+    indices = [Index(value = ["cnic"], unique = true)]
+)
 data class Member(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
     val phone: String,
+    val cnic: String, // Mandatory
     val address: String = "",
     val gender: String = "Male",
-    val age: Int = 0,
-    val weight: String = "",
-    val height: String = "",
-    val goal: String = "",
     val photoUri: String? = null,
     val status: MemberStatus = MemberStatus.UNPAID,
     val joinDate: Long = System.currentTimeMillis(),
 
     // Subscription
-    val planId: Long? = null,
+    val planId: String? = null,
     val planName: String? = null,
     val subscriptionStart: Long? = null,
     val subscriptionEnd: Long? = null,
@@ -77,13 +90,20 @@ data class Member(
 
     val lastAttendance: Long? = null,
     val isActive: Boolean = true,
-    val notes: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val isBlocked: Boolean = false, // Block system
+    val createdAt: Long = System.currentTimeMillis(),
+    
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0,
+    val imageHash: String? = null
 )
 
 // ─────────────────────────────────────────────
 //  ATTENDANCE
 // ─────────────────────────────────────────────
+@Serializable
 @Entity(
     tableName = "attendance",
     foreignKeys = [ForeignKey(
@@ -95,18 +115,23 @@ data class Member(
     indices = [Index("memberId")]
 )
 data class Attendance(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val memberId: Long,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val memberId: String,
     val memberName: String,
     val date: String,               // "yyyy-MM-dd"
     val timeShift: TimeShift,
     val checkInTime: Long = System.currentTimeMillis(),
-    val isPresent: Boolean = true
+    val isPresent: Boolean = true,
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0
 )
 
 // ─────────────────────────────────────────────
 //  PAYMENTS
 // ─────────────────────────────────────────────
+@Serializable
 @Entity(
     tableName = "payments",
     foreignKeys = [ForeignKey(
@@ -118,27 +143,36 @@ data class Attendance(
     indices = [Index("memberId")]
 )
 data class Payment(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val memberId: Long,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val memberId: String,
     val memberName: String,
     val amount: Double,
     val paymentDate: Long = System.currentTimeMillis(),
     val method: String = "Cash",
-    val note: String = ""
+    val note: String = "",
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0
 )
 
 // ─────────────────────────────────────────────
 //  EXPENSES
 // ─────────────────────────────────────────────
+@Serializable
 @Entity(tableName = "expenses")
 data class Expense(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val description: String,
     val amount: Double,
     val category: String = "General",
     val date: Long = System.currentTimeMillis(),
     val receipt: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // Sync fields
+    val updatedAt: Long = System.currentTimeMillis(),
+    val deviceId: String = "",
+    val isDeleted: Int = 0
 )
 
 // ─────────────────────────────────────────────

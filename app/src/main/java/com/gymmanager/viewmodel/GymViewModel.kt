@@ -6,6 +6,8 @@ import androidx.lifecycle.*
 import com.gymmanager.data.db.GymDatabase
 import com.gymmanager.data.model.*
 import com.gymmanager.data.repository.GymRepository
+import com.gymmanager.sync.SyncManager
+import com.gymmanager.sync.SyncResult
 import com.gymmanager.utils.DateUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,6 +21,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         db.attendanceDao(), db.paymentDao(), db.expenseDao(), db.backupLogDao()
     )
 
+    private val syncManager = SyncManager(application, db)
+    val lastSyncTime: StateFlow<Long> = syncManager.lastSyncTime
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
     // ── GYM INFO ──────────────────────────────
     val gymInfo: StateFlow<GymInfo?> = repo.getGymInfo()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -31,7 +37,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addPlan(plan: SubscriptionPlan) = viewModelScope.launch { repo.insertPlan(plan) }
     fun updatePlan(plan: SubscriptionPlan) = viewModelScope.launch { repo.updatePlan(plan) }
-    fun deletePlan(id: Long) = viewModelScope.launch { repo.deletePlan(id) }
+    fun deletePlan(id: String) = viewModelScope.launch { repo.deletePlan(id) }
 
     // ── MEMBERS ───────────────────────────────
     private val _searchQuery = MutableStateFlow("")
@@ -56,43 +62,58 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(q: String) { _searchQuery.value = q }
 
-    private val _selectedMemberId = MutableStateFlow<Long?>(null)
+    private val _selectedMemberId = MutableStateFlow<String?>(null)
     val selectedMember: StateFlow<Member?> = _selectedMemberId
         .flatMapLatest { id -> if (id != null) repo.getMemberById(id) else flowOf(null) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    fun selectMember(id: Long) { _selectedMemberId.value = id }
+    fun selectMember(id: String) { _selectedMemberId.value = id }
+
+    val blockedMembers: StateFlow<List<Member>> = repo.getBlockedMembers()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    suspend fun checkCnicExists(cnic: String): Member? {
+        return repo.getMemberByCnic(cnic.trim())
+    }
 
     fun addMember(
         name: String,
         phone: String,
+        cnic: String,
         address: String,
         gender: String,
-        age: Int,
-        weight: String,
-        height: String,
-        goal: String,
         photoUri: String?,
         timeShift: TimeShift,
         customShiftTime: String?,
-        planId: Long?,
+        planId: String?,
         totalFee: Double
     ) = viewModelScope.launch {
-        val planIdSafe = planId
-        val plan = if (planIdSafe != null) db.subscriptionPlanDao().getPlanById(planIdSafe) else null
+        val plan = if (planId != null) db.subscriptionPlanDao().getPlanById(planId) else null
         val now = System.currentTimeMillis()
         val endDate = if (plan != null) now + (plan.durationDays.toLong() * 86_400_000L) else null
+        val deviceId = getDeviceId(getApplication())
+        val memberId = java.util.UUID.randomUUID().toString()
+
+        // Handle profile photo saving to internal storage
+        var localPhotoPath: String? = null
+        var imageHash: String? = null
+        if (photoUri != null) {
+            val context = getApplication<Application>().applicationContext
+            val uri = Uri.parse(photoUri)
+            localPhotoPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, uri, memberId)
+            if (localPhotoPath != null) {
+                imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPhotoPath)
+            }
+        }
 
         val member = Member(
+            id = memberId,
             name = name.trim(),
             phone = phone.trim(),
+            cnic = cnic.trim(),
             address = address.trim(),
             gender = gender,
-            age = age,
-            weight = weight,
-            height = height,
-            goal = goal,
-            photoUri = photoUri,
+            photoUri = localPhotoPath,
             status = MemberStatus.UNPAID,
             planId = planId,
             planName = plan?.name,
@@ -101,20 +122,56 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
             totalFee = totalFee,
             amountDue = totalFee,
             timeShift = timeShift,
-            customShiftTime = customShiftTime
+            customShiftTime = customShiftTime,
+            deviceId = deviceId,
+            updatedAt = now,
+            imageHash = imageHash
         )
         repo.insertMember(member)
     }
 
-    fun updateMemberPhoto(id: Long, uri: String) = viewModelScope.launch {
-        repo.getMemberByIdOnce(id)?.let { repo.updateMember(it.copy(photoUri = uri)) }
+    fun updateMemberPhoto(id: String, uri: String) = viewModelScope.launch {
+        val context = getApplication<Application>().applicationContext
+        val localPhotoPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(uri), id)
+        if (localPhotoPath != null) {
+            val imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPhotoPath)
+            repo.getMemberByIdOnce(id)?.let { 
+                repo.updateMember(it.copy(photoUri = localPhotoPath, imageHash = imageHash, updatedAt = System.currentTimeMillis())) 
+            }
+        }
     }
 
     fun updateMember(member: Member) = viewModelScope.launch {
-        repo.updateMember(member)
+        var updatedMember = member
+        val context = getApplication<Application>().applicationContext
+
+        // If photoUri is a content/file URI (from picker) and not already in internal storage
+        if (member.photoUri != null && (member.photoUri.startsWith("content://") || member.photoUri.startsWith("file://"))) {
+            val localPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(member.photoUri), member.id)
+            if (localPath != null) {
+                val imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPath)
+                updatedMember = member.copy(photoUri = localPath, imageHash = imageHash)
+            }
+        }
+
+        val finalMember = updatedMember.copy(
+            updatedAt = System.currentTimeMillis(),
+            deviceId = getDeviceId(getApplication())
+        )
+        repo.updateMember(finalMember)
     }
 
-    fun deleteMember(id: Long) = viewModelScope.launch {
+    fun toggleBlockMember(id: String, block: Boolean) = viewModelScope.launch {
+        repo.getMemberByIdOnce(id)?.let { 
+            repo.updateMember(it.copy(
+                isBlocked = block,
+                updatedAt = System.currentTimeMillis(),
+                deviceId = getDeviceId(getApplication())
+            )) 
+        }
+    }
+
+    fun deleteMember(id: String) = viewModelScope.launch {
         repo.deleteMember(id)
         if (_selectedMemberId.value == id) _selectedMemberId.value = null
     }
@@ -123,11 +180,14 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     val payments: StateFlow<List<Payment>> = repo.getAllPayments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun getMemberPayments(memberId: Long): Flow<List<Payment>> = repo.getMemberPayments(memberId)
+    fun getMemberPayments(memberId: String): Flow<List<Payment>> = repo.getMemberPayments(memberId)
 
-    fun recordPayment(memberId: Long, amount: Double, method: String, note: String) =
+    fun recordPayment(memberId: String, amount: Double, method: String, note: String) =
         viewModelScope.launch {
             val member = repo.getMemberByIdOnce(memberId) ?: return@launch
+            val now = System.currentTimeMillis()
+            val deviceId = getDeviceId(getApplication())
+            
             val newPaid = member.amountPaid + amount
             val newDue = (member.totalFee - newPaid).coerceAtLeast(0.0)
             val newStatus = when {
@@ -135,11 +195,25 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                 newPaid <= 0.0 -> MemberStatus.UNPAID
                 else -> MemberStatus.PARTIAL
             }
-            repo.updateMember(member.copy(amountPaid = newPaid, amountDue = newDue, status = newStatus))
-            repo.insertPayment(Payment(memberId = memberId, memberName = member.name, amount = amount, method = method, note = note))
+            repo.updateMember(member.copy(
+                amountPaid = newPaid, 
+                amountDue = newDue, 
+                status = newStatus,
+                updatedAt = now,
+                deviceId = deviceId
+            ))
+            repo.insertPayment(Payment(
+                memberId = memberId, 
+                memberName = member.name, 
+                amount = amount, 
+                method = method, 
+                note = note,
+                updatedAt = now,
+                deviceId = deviceId
+            ))
         }
 
-    fun deletePayment(paymentId: Long) = viewModelScope.launch { repo.deletePayment(paymentId) }
+    fun deletePayment(paymentId: String) = viewModelScope.launch { repo.deletePayment(paymentId) }
 
     // ── ATTENDANCE ────────────────────────────
     private val _attendanceDate = MutableStateFlow(DateUtils.todayString())
@@ -153,6 +227,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleAttendance(member: Member, date: String) = viewModelScope.launch {
         val existing = repo.getAttendanceRecord(member.id, date)
+        val now = System.currentTimeMillis()
+        val deviceId = getDeviceId(getApplication())
+        
         if (existing != null) {
             repo.deleteAttendance(existing.id)
         } else {
@@ -161,28 +238,57 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                     memberId = member.id,
                     memberName = member.name,
                     date = date,
-                    timeShift = member.timeShift
+                    timeShift = member.timeShift,
+                    updatedAt = now,
+                    deviceId = deviceId
                 )
             )
-            repo.updateMember(member.copy(lastAttendance = System.currentTimeMillis()))
+            repo.updateMember(member.copy(
+                lastAttendance = now,
+                updatedAt = now,
+                deviceId = deviceId
+            ))
         }
     }
 
-    fun getMemberAttendance(memberId: Long): Flow<List<Attendance>> = repo.getMemberAttendance(memberId)
+    fun getMemberAttendance(memberId: String): Flow<List<Attendance>> = repo.getMemberAttendance(memberId)
 
     // ── EXPENSES ──────────────────────────────
     val expenses: StateFlow<List<Expense>> = repo.getAllExpenses()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addExpense(description: String, amount: Double, category: String) = viewModelScope.launch {
-        repo.insertExpense(Expense(description = description, amount = amount, category = category))
+        val now = System.currentTimeMillis()
+        repo.insertExpense(Expense(
+            description = description, 
+            amount = amount, 
+            category = category,
+            updatedAt = now,
+            deviceId = getDeviceId(getApplication())
+        ))
     }
 
-    fun deleteExpense(id: Long) = viewModelScope.launch { repo.deleteExpense(id) }
+    fun deleteExpense(id: String) = viewModelScope.launch { repo.deleteExpense(id) }
 
     // ── BACKUP LOGS ───────────────────────────
     val backupHistory: StateFlow<List<BackupLog>> = repo.getBackupHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ── SYNC ──────────────────────────────────
+    fun startSyncServer() = syncManager.startServer()
+    fun stopSyncServer() = syncManager.stopServer()
+
+    private fun getDeviceId(context: android.content.Context): String {
+        return android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+    }
+    
+    private val _syncResult = MutableStateFlow<SyncResult?>(null)
+    val syncResult = _syncResult.asStateFlow()
+
+    fun syncWithServer(ip: String) = viewModelScope.launch {
+        _syncResult.value = null
+        _syncResult.value = syncManager.syncWithServer(ip)
+    }
 
     // ── FACTORY ───────────────────────────────
     class Factory(private val application: Application) : ViewModelProvider.Factory {
