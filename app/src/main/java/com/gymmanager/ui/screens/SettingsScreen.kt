@@ -202,7 +202,7 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("Gym Manager Pro", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
-                Text("Version 1.0.0", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text("Version 2.0.0", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(12.dp))
                 HorizontalDivider(color = GymBgBorder)
                 Spacer(Modifier.height(12.dp))

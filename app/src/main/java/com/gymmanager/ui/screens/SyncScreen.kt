@@ -41,13 +41,31 @@ fun SyncScreen(vm: GymViewModel, onBack: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
 
     fun getLocalIpAddress(): String {
-        val wifiManager = context.applicationContext.getSystemService(android.content.Context.WIFI_SERVICE) as WifiManager
-        val ipAddress = wifiManager.connectionInfo.ipAddress
-        return if (ipAddress == 0) "Connect to Hotspot First" else String.format(
-            Locale.US, "%d.%d.%d.%d",
-            ipAddress and 0xff, ipAddress shr 8 and 0xff,
-            ipAddress shr 16 and 0xff, ipAddress shr 24 and 0xff
-        )
+        try {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            for (networkInterface in interfaces.toList()) {
+                // Prioritize wlan0 (WiFi) and ap0 (Hotspot) interfaces
+                if (networkInterface.name.contains("wlan") || networkInterface.name.contains("ap")) {
+                    for (address in networkInterface.inetAddresses.toList()) {
+                        if (!address.isLoopbackAddress && address is java.net.Inet4Address) {
+                            return address.hostAddress ?: "192.168.43.1"
+                        }
+                    }
+                }
+            }
+            // Fallback: Check any non-loopback IPv4
+            for (networkInterface in interfaces.toList()) {
+                for (address in networkInterface.inetAddresses.toList()) {
+                    if (!address.isLoopbackAddress && address is java.net.Inet4Address) {
+                        return address.hostAddress ?: "192.168.43.1"
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        // Most Android hotspots default to this
+        return "192.168.43.1"
     }
 
     LaunchedEffect(syncResult) { if (syncResult != null) isLoading = false }

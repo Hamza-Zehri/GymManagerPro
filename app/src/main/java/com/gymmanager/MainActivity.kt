@@ -42,16 +42,24 @@ class MainActivity : FragmentActivity() {
         // Force lock on start
         unlocked = false
 
-        // Register lifecycle observer to lock when app goes to background
+        // Register lifecycle observer to lock when app goes to background or screen turns off
         lifecycle.addObserver(LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) {
-                lastActiveTime = System.currentTimeMillis()
-            } else if (event == Lifecycle.Event.ON_RESUME) {
-                val currentTime = System.currentTimeMillis()
-                val fiveMinutesInMillis = 5 * 60 * 1000
-                if (lastActiveTime != 0L && (currentTime - lastActiveTime > fiveMinutesInMillis)) {
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    lastActiveTime = System.currentTimeMillis()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    val currentTime = System.currentTimeMillis()
+                    val twoMinutesInMillis = 2 * 60 * 1000
+                    if (lastActiveTime != 0L && (currentTime - lastActiveTime > twoMinutesInMillis)) {
+                        unlocked = false
+                    }
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    // Lock immediately if phone is locked (screen turns off)
                     unlocked = false
                 }
+                else -> {}
             }
         })
 
