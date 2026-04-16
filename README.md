@@ -34,7 +34,7 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 | **New! ZIP Backups (v2.0)** | Backups now include both the database AND member photos in a single `.zip` file. |
 | **Member Management** | Add, edit, block/unblock members. Uses mandatory CNIC for unique ID. |
 | **Internal Image Storage** | Photos are saved inside the app's private storage for maximum security. |
-| **App Lock (High Security)** | Fingerprint & PIN support. Auto-locks if you leave the app for 1 minute. |
+| **App Lock (High Security)** | Fingerprint & PIN support. Auto-locks if you leave the app for 2 minutes. |
 | **Auto Backup (24h)** | Automatically saves your data every day to your phone's memory. |
 | **Messaging** | One-tap WhatsApp or SMS reminders for fees. |
 | **Attendance** | Easy daily attendance tracking with shift support. |
@@ -84,7 +84,7 @@ The app keeps your data safe with an improved backup system:
 
 ## 🛡️ Security Features
 
-- **1-Minute Grace Period**: The app only locks if it has been closed for more than 1 minute.
+- **2-Minute Grace Period**: The app only locks if it has been closed for more than 2 minutes.
 - **App-Specific PIN**: Set a 4-digit PIN just for this app.
 - **Biometric Integration**: Use your Fingerprint for fast, secure access.
 

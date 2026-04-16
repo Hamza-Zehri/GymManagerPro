@@ -224,6 +224,9 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
             // Subscription
             if (m.planName != null) {
                 item {
+                    val expired = m.subscriptionEnd?.let { DateUtils.isExpired(it) } ?: false
+                    var showResubscribeSheet by remember { mutableStateOf(false) }
+
                     Surface(color = GymBgCard, shape = RoundedCornerShape(20.dp)) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -231,22 +234,40 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                                 Spacer(Modifier.width(8.dp))
                                 Text("SUBSCRIPTION", style = MaterialTheme.typography.labelSmall,
                                     color = GymGreenBright, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.weight(1f))
+                                if (expired) {
+                                    TextButton(onClick = { showResubscribeSheet = true }) {
+                                        Icon(Icons.Default.Refresh, null, tint = GymYellow, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Resubscribe", color = GymYellow, style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
                             }
                             Spacer(Modifier.height(12.dp))
-                            FeeRow("Plan", m.planName, TextPrimary)
-                            if (m.subscriptionStart != null) FeeRow("Start", DateUtils.displayDate(m.subscriptionStart), TextSecondary)
+                            FeeRow("Plan", m.planName ?: "", TextPrimary)
+                            if (m.subscriptionStart != null) FeeRow("Start", DateUtils.displayDate(m.subscriptionStart!!), TextSecondary)
                             if (m.subscriptionEnd != null) {
-                                val days = DateUtils.daysUntil(m.subscriptionEnd)
-                                val expired = DateUtils.isExpired(m.subscriptionEnd)
-                                FeeRow("Expiry", DateUtils.displayDate(m.subscriptionEnd),
+                                val days = DateUtils.daysUntil(m.subscriptionEnd!!)
+                                FeeRow("Expiry", DateUtils.displayDate(m.subscriptionEnd!!),
                                     if (expired) StatusUnpaid else if (days < 7) StatusPartial else StatusPaid)
                                 if (!expired) FeeRow("Days Left", "$days days",
                                     if (days < 7) StatusPartial else StatusPaid, isBold = true)
                                 else FeeRow("Status", "EXPIRED ⚠️", StatusUnpaid, isBold = true)
                             }
                             if (m.lastAttendance != null)
-                                FeeRow("Last Seen", DateUtils.displayDate(m.lastAttendance), TextSecondary)
+                                FeeRow("Last Seen", DateUtils.displayDate(m.lastAttendance!!), TextSecondary)
                         }
+                    }
+
+                    if (showResubscribeSheet) {
+                        ResubscribeSheet(
+                            vm = vm,
+                            onDismiss = { showResubscribeSheet = false },
+                            onConfirm = { planId: String, fee: Double ->
+                                vm.resubscribeMember(m.id, planId, fee)
+                                showResubscribeSheet = false
+                            }
+                        )
                     }
                 }
             }
@@ -503,5 +524,76 @@ private fun FeeRow(label: String, value: String, valueColor: Color, isBold: Bool
         Text(label, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
         Text(value, style = MaterialTheme.typography.bodyMedium, color = valueColor,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResubscribeSheet(
+    vm: GymViewModel,
+    onDismiss: () -> Unit,
+    onConfirm: (String, Double) -> Unit
+) {
+    val plans by vm.plans.collectAsState()
+    var selectedPlanId by remember { mutableStateOf<String?>(null) }
+    var feeAmount by remember { mutableStateOf("") }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = GymBgCard) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+            Text("Renew Subscription", style = MaterialTheme.typography.titleLarge,
+                color = GymYellow, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
+
+            Text("Select Plan", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Spacer(Modifier.height(8.dp))
+
+            plans.forEach { plan ->
+                val isSelected = selectedPlanId == plan.id
+                Surface(
+                    onClick = {
+                        selectedPlanId = plan.id
+                        feeAmount = plan.price.toString()
+                    },
+                    color = if (isSelected) Color(0x33FFD600) else GymBgElevated,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, GymYellow) else null
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(plan.name, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            Text("${plan.durationDays} days", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text("Rs. ${"%,.0f".format(plan.price)}", color = GymYellow, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            GymTextField(
+                value = feeAmount,
+                onValueChange = { feeAmount = it },
+                label = "Fee to Charge (PKR)",
+                leadingIcon = Icons.Default.AttachMoney,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = {
+                    val pId = selectedPlanId
+                    val fee = feeAmount.toDoubleOrNull()
+                    if (pId != null && fee != null) {
+                        onConfirm(pId, fee)
+                    }
+                },
+                enabled = selectedPlanId != null && feeAmount.toDoubleOrNull() != null,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GymYellow)
+            ) {
+                Text("Confirm Renewal", color = GymBgDark, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }

@@ -90,7 +90,12 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     ) = viewModelScope.launch {
         val plan = if (planId != null) db.subscriptionPlanDao().getPlanById(planId) else null
         val now = System.currentTimeMillis()
-        val endDate = if (plan != null) now + (plan.durationDays.toLong() * 86_400_000L) else null
+        
+        val endDate = if (plan != null) {
+            if (plan.durationDays == 30) DateUtils.addMonths(now, 1)
+            else DateUtils.addDays(now, plan.durationDays)
+        } else null
+
         val deviceId = getDeviceId(getApplication())
         val memberId = java.util.UUID.randomUUID().toString()
 
@@ -206,12 +211,40 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
                 memberId = memberId, 
                 memberName = member.name, 
                 amount = amount, 
+                paymentDate = now,
                 method = method, 
                 note = note,
                 updatedAt = now,
                 deviceId = deviceId
             ))
         }
+
+    fun resubscribeMember(memberId: String, planId: String, totalFee: Double) = viewModelScope.launch {
+        val member = repo.getMemberByIdOnce(memberId) ?: return@launch
+        val plan = db.subscriptionPlanDao().getPlanById(planId) ?: return@launch
+        val now = System.currentTimeMillis()
+        val deviceId = getDeviceId(getApplication())
+
+        // Calculate new end date: if exactly 30 days, add 1 calendar month to keep same day of month
+        val newEnd = if (plan.durationDays == 30) DateUtils.addMonths(now, 1)
+                    else DateUtils.addDays(now, plan.durationDays)
+
+        // Add the new fee to the existing totals to track cumulative debt
+        val updatedTotalFee = member.totalFee + totalFee
+        val updatedAmountDue = member.amountDue + totalFee
+
+        repo.updateMember(member.copy(
+            planId = planId,
+            planName = plan.name,
+            subscriptionStart = now,
+            subscriptionEnd = newEnd,
+            totalFee = updatedTotalFee,
+            amountDue = updatedAmountDue,
+            status = if (updatedAmountDue > 0) MemberStatus.UNPAID else MemberStatus.PAID,
+            updatedAt = now,
+            deviceId = deviceId
+        ))
+    }
 
     fun deletePayment(paymentId: String) = viewModelScope.launch { repo.deletePayment(paymentId) }
 
