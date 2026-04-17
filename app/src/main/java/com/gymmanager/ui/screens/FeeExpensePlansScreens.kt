@@ -272,7 +272,8 @@ fun ExpensesScreen(vm: GymViewModel, onBack: () -> Unit) {
 fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
     val plans by vm.plans.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    var deleteId     by remember { mutableStateOf<String?>(null) }
+    var deletePlan   by remember { mutableStateOf<SubscriptionPlan?>(null) }
+    var editPlan     by remember { mutableStateOf<SubscriptionPlan?>(null) }
 
 
     // Form
@@ -302,7 +303,13 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
                                 Icon(Icons.Default.CardMembership, null, tint = Emerald400)
                             }
                             Spacer(Modifier.width(14.dp))
-                            Column(Modifier.weight(1f)) {
+                            Column(Modifier.weight(1f).clickable {
+                                planName = plan.name
+                                duration = plan.durationDays.toString()
+                                price = plan.price.toString()
+                                planDesc = plan.description
+                                editPlan = plan
+                            }) {
                                 Text(plan.name, color = Color.White, style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold)
                                 Text("${plan.durationDays} days", color = Zinc400, style = MaterialTheme.typography.bodySmall)
@@ -314,7 +321,7 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
                                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(4.dp))
                                 Icon(Icons.Default.DeleteOutline, null, tint = Zinc600,
-                                    modifier = Modifier.size(18.dp).clickable { deleteId = plan.id })
+                                    modifier = Modifier.size(18.dp).clickable { deletePlan = plan })
                             }
                         }
                     }
@@ -324,10 +331,14 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
         }
     }
 
-    if (showAddSheet) {
-        ModalBottomSheet(onDismissRequest = { showAddSheet = false }, containerColor = Zinc900) {
+    if (showAddSheet || editPlan != null) {
+        ModalBottomSheet(onDismissRequest = { 
+            showAddSheet = false
+            editPlan = null
+            planName = ""; duration = ""; price = ""; planDesc = ""
+        }, containerColor = Zinc900) {
             Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Add Plan", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text(if (editPlan != null) "Edit Plan" else "Add Plan", style = MaterialTheme.typography.titleLarge, color = Color.White)
                 GymTextField(value = planName, onValueChange = { planName = it },
                     label = "Plan Name *", placeholder = "e.g. Monthly", leadingIcon = Icons.Default.Label)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -341,19 +352,30 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
                 GymTextField(value = planDesc, onValueChange = { planDesc = it },
                     label = "Description (Optional)", placeholder = "e.g. Best value for monthly")
                 PrimaryButton(
-                    text = "Add Plan",
+                    text = if (editPlan != null) "Update Plan" else "Add Plan",
                     enabled = planName.isNotBlank() && duration.toIntOrNull() != null && price.toDoubleOrNull() != null,
                     onClick = {
                         val now = System.currentTimeMillis()
-                        vm.addPlan(SubscriptionPlan(
-                            name = planName.trim(), 
-                            durationDays = duration.toInt(),
-                            price = price.toDouble(), 
-                            description = planDesc.trim(),
-                            updatedAt = now,
-                            deviceId = "local" // Ideally from VM, but for now
-                        ))
-                        showAddSheet = false; planName = ""; duration = ""; price = ""; planDesc = ""
+                        if (editPlan != null) {
+                            vm.updatePlan(editPlan!!.copy(
+                                name = planName.trim(),
+                                durationDays = duration.toInt(),
+                                price = price.toDouble(),
+                                description = planDesc.trim(),
+                                updatedAt = now
+                            ))
+                        } else {
+                            vm.addPlan(SubscriptionPlan(
+                                name = planName.trim(), 
+                                durationDays = duration.toInt(),
+                                price = price.toDouble(), 
+                                description = planDesc.trim(),
+                                updatedAt = now,
+                                deviceId = "local"
+                            ))
+                        }
+                        showAddSheet = false; editPlan = null
+                        planName = ""; duration = ""; price = ""; planDesc = ""
                     },
                     icon = Icons.Default.Check
                 )
@@ -361,10 +383,10 @@ fun SubscriptionPlansScreen(vm: GymViewModel, onBack: () -> Unit) {
         }
     }
 
-    deleteId?.let { id ->
-        DeleteConfirmDialog("Delete Plan", "This will remove the plan but not affect existing members.",
-            onConfirm = { vm.deletePlan(id); deleteId = null },
-            onDismiss = { deleteId = null })
+    deletePlan?.let { plan ->
+        DeleteConfirmDialog("Delete Plan", "Are you sure you want to delete '${plan.name}'? This will not affect members already on this plan.",
+            onConfirm = { vm.deletePlan(plan.id); deletePlan = null },
+            onDismiss = { deletePlan = null })
     }
 }
 
