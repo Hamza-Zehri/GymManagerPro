@@ -27,6 +27,8 @@ import com.gymmanager.viewmodel.GymViewModel
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
+import android.content.Context
+import android.os.PowerManager
 
 class MainActivity : FragmentActivity() {
 
@@ -56,8 +58,10 @@ class MainActivity : FragmentActivity() {
                     }
                 }
                 Lifecycle.Event.ON_STOP -> {
-                    // Lock immediately if phone is locked (screen turns off)
-                    unlocked = false
+                    val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                    if (!pm.isInteractive) {
+                        unlocked = false
+                    }
                 }
                 else -> {}
             }

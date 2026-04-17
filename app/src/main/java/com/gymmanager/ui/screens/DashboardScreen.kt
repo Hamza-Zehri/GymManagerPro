@@ -1,8 +1,13 @@
 package com.gymmanager.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,15 +16,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.gymmanager.data.model.GymInfo
+import com.gymmanager.data.model.Member
 import com.gymmanager.ui.Screen
 import com.gymmanager.ui.components.*
 import com.gymmanager.ui.theme.*
 import com.gymmanager.viewmodel.GymViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     vm: GymViewModel,
@@ -30,6 +39,8 @@ fun DashboardScreen(
     val paidMembers by vm.paidMembers.collectAsState()
     val pendingMembers by vm.pendingMembers.collectAsState()
     val totalDue by vm.totalDue.collectAsState()
+    val expiringMembers by vm.expiringMembers.collectAsState()
+    var showExpiringSheet by remember { mutableStateOf(false) }
 
     val greeting = remember {
         val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -61,6 +72,19 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.headlineSmall, color = Color.White)
                 Text(greeting + " 👋", style = MaterialTheme.typography.bodySmall, color = Zinc400)
                 Text(dateStr, style = MaterialTheme.typography.labelSmall, color = Zinc600)
+            }
+            if (expiringMembers.isNotEmpty()) {
+                Box {
+                    SquareIconButton(Icons.Default.NotificationsActive, onClick = { showExpiringSheet = true }, tint = Amber500)
+                    Surface(
+                        Modifier.align(Alignment.TopEnd).padding(4.dp),
+                        shape = CircleShape, color = Rose500
+                    ) {
+                        Text(expiringMembers.size.toString(), modifier = Modifier.padding(horizontal = 4.dp),
+                            style = MaterialTheme.typography.labelSmall, color = Color.White)
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
             }
             SquareIconButton(Icons.Default.Settings, onClick = { onNavigate(Screen.Settings.route) })
         }
@@ -132,5 +156,40 @@ fun DashboardScreen(
             }
         }
         Spacer(Modifier.height(24.dp))
+    }
+
+    if (showExpiringSheet) {
+        ModalBottomSheet(onDismissRequest = { showExpiringSheet = false }, containerColor = Zinc900) {
+            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                Text("Expiring Soon", style = MaterialTheme.typography.titleLarge, color = Color.White,
+                    modifier = Modifier.padding(bottom = 16.dp))
+                
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(max = 400.dp)) {
+                    items(expiringMembers) { member ->
+                        Surface(
+                            color = Zinc800,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                showExpiringSheet = false
+                                onNavigate(Screen.MemberProfile.createRoute(member.id))
+                            }
+                        ) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(40.dp).background(Zinc700, CircleShape), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Person, null, tint = Zinc400)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(member.name, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text("Ends: ${SimpleDateFormat("dd MMM", Locale.getDefault()).format(Date(member.subscriptionEnd ?: 0L))}",
+                                        color = Zinc400, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Icon(Icons.Default.ChevronRight, null, tint = Zinc500)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

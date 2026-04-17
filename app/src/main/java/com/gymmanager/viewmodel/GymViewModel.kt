@@ -9,10 +9,12 @@ import com.gymmanager.data.repository.GymRepository
 import com.gymmanager.sync.SyncManager
 import com.gymmanager.sync.SyncResult
 import com.gymmanager.utils.DateUtils
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = GymDatabase.getInstance(application)
@@ -59,6 +61,16 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     val totalDue: StateFlow<Double> = repo.getTotalDue()
         .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val expiringMembers: StateFlow<List<Member>> = repo.getAllMembers()
+        .map { list ->
+            val now = System.currentTimeMillis()
+            val fifteenDaysFromNow = now + (15 * 24 * 60 * 60 * 1000L)
+            list.filter { 
+                val end = it.subscriptionEnd ?: 0L
+                end <= fifteenDaysFromNow && end > (now - 86400000L) // Include today
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setSearchQuery(q: String) { _searchQuery.value = q }
 

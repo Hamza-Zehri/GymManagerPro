@@ -34,13 +34,14 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 | **New! ZIP Backups (v2.0)** | Backups now include both the database AND member photos in a single `.zip` file. |
 | **Member Management** | Add, edit, block/unblock members. Uses mandatory CNIC for unique ID. |
 | **Internal Image Storage** | Photos are saved inside the app's private storage for maximum security. |
-| **App Lock (High Security)** | Fingerprint & PIN support. Auto-locks if you leave the app for 2 minutes. |
+| **App Lock (High Security)** | Fingerprint & PIN support. Locks instantly when you leave the app or lock the screen. |
 | **Auto Backup (24h)** | Automatically saves your data every day to your phone's memory. |
 | **Messaging** | One-tap WhatsApp or SMS reminders for fees. |
 | **Attendance** | Easy daily attendance tracking with shift support. |
 | **Fee Management** | Track Paid, Unpaid, and Partial payments with a clear history. |
 | **Subscription Plans** | Create, edit, or delete custom packages (e.g., Monthly, Yearly). |
 | **Intelligent Renewal** | Resubscribe expired members with cumulative debt tracking and exact date alignment (e.g., 5th to 5th). |
+| **Smart Expiry Tracker** | Dashboard notification icon (Amber) for members whose subscription expires within 15 days. |
 | **Professional UI** | Clean, dark theme design optimized for all screen sizes. |
 
 ---
@@ -85,7 +86,7 @@ The app keeps your data safe with an improved backup system:
 
 ## 🛡️ Security Features
 
-- **2-Minute Grace Period**: The app only locks if it has been closed for more than 2 minutes.
+- **Instant Lock**: The app locks immediately every time it is minimized or the screen turns off.
 - **App-Specific PIN**: Set a 4-digit PIN just for this app.
 - **Biometric Integration**: Use your Fingerprint for fast, secure access.
 
