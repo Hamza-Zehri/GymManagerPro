@@ -36,7 +36,7 @@ interface SubscriptionPlanDao {
     @Update
     suspend fun updatePlan(plan: SubscriptionPlan)
 
-    @Query("UPDATE subscription_plans SET isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
+    @Query("UPDATE subscription_plans SET isActive = 0, isDeleted = 1, updatedAt = :timestamp WHERE id = :id")
     suspend fun deletePlan(id: String, timestamp: Long = System.currentTimeMillis())
 
     @Query("SELECT * FROM subscription_plans WHERE updatedAt > :lastSync")
