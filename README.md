@@ -85,6 +85,12 @@ The app keeps your data safe with an improved backup system:
 
 ---
 
+## 🛡️ Privacy Policy
+Your privacy is important to us. View our full privacy policy here:
+[Privacy Policy](https://github.com/Hamza-Zehri/GymManagerPro/blob/master/PRIVACY_POLICY.md)
+
+---
+
 ## 🛡️ Security Features
 
 - **Instant Lock**: The app locks immediately every time it is minimized or the screen turns off.
