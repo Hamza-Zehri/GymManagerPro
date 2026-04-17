@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace 'com.gymmanager'
+    namespace 'com.hamzaasad.gymmanagerpro'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.gymmanager"
+        applicationId "com.hamzaasad.gymmanagerpro"
         minSdk 24
         targetSdk 34
         versionCode 2

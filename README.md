@@ -3,12 +3,6 @@
 A **complete, production-ready Android gym management system** built with Jetpack Compose,
 Room SQLite, and an automated manual-first backup system. Based on the Figma UI design by Engr. Hamza Asad.
 
----
-
-## 📱 Application Details
-- **App Name:** Gym Manager Pro
-- **Package Name:** `com.gymmanager`
-- **Version:** 2.0.0
 
 ---
 
