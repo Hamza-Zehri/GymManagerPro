@@ -65,10 +65,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     val expiringMembers: StateFlow<List<Member>> = repo.getAllMembers()
         .map { list ->
             val now = System.currentTimeMillis()
-            val fifteenDaysFromNow = now + (15 * 24 * 60 * 60 * 1000L)
+            val fiveDaysFromNow = now + (5 * 24 * 60 * 60 * 1000L)
             list.filter { 
                 val end = it.subscriptionEnd ?: 0L
-                end <= fifteenDaysFromNow && end > (now - 86400000L) // Include today
+                end <= fiveDaysFromNow && end > (now - 86400000L) // Include today
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

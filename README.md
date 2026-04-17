@@ -41,7 +41,7 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 | **Fee Management** | Track Paid, Unpaid, and Partial payments with a clear history. |
 | **Subscription Plans** | Create, edit, or delete custom packages (e.g., Monthly, Yearly). |
 | **Intelligent Renewal** | Resubscribe expired members with cumulative debt tracking and exact date alignment (e.g., 5th to 5th). |
-| **Smart Expiry Tracker** | Dashboard notification icon (Amber) for members whose subscription expires within 15 days. |
+| **Smart Expiry Tracker** | Dashboard notification icon (Amber) for members whose subscription expires within 5 days. |
 | **Professional UI** | Clean, dark theme design optimized for all screen sizes. |
 
 ---
