@@ -79,9 +79,9 @@ fun SettingsScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: () ->
     fun setAutoBackup(v: Boolean) = scope.launch { 
         context.dataStore.edit { it[DataStoreKeys.AUTO_BACKUP] = v }
         if (v) {
-            com.gymmanager.backup.AutoBackupWorker.schedule(context)
+            com.hamzaasad.gymmanagerpro.backup.AutoBackupWorker.schedule(context)
         } else {
-            com.gymmanager.backup.AutoBackupWorker.cancel(context)
+            com.hamzaasad.gymmanagerpro.backup.AutoBackupWorker.cancel(context)
         }
     }
     fun setAppLock(v: Boolean)    = scope.launch {

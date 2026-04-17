@@ -117,9 +117,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         if (photoUri != null) {
             val context = getApplication<Application>().applicationContext
             val uri = Uri.parse(photoUri)
-            localPhotoPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, uri, memberId)
+            localPhotoPath = com.hamzaasad.gymmanagerpro.utils.FileUtils.saveImageToInternalStorage(context, uri, memberId)
             if (localPhotoPath != null) {
-                imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPhotoPath)
+                imageHash = com.hamzaasad.gymmanagerpro.utils.FileUtils.getImageHash(localPhotoPath)
             }
         }
 
@@ -149,9 +149,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateMemberPhoto(id: String, uri: String) = viewModelScope.launch {
         val context = getApplication<Application>().applicationContext
-        val localPhotoPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(uri), id)
+        val localPhotoPath = com.hamzaasad.gymmanagerpro.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(uri), id)
         if (localPhotoPath != null) {
-            val imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPhotoPath)
+            val imageHash = com.hamzaasad.gymmanagerpro.utils.FileUtils.getImageHash(localPhotoPath)
             repo.getMemberByIdOnce(id)?.let { 
                 repo.updateMember(it.copy(photoUri = localPhotoPath, imageHash = imageHash, updatedAt = System.currentTimeMillis())) 
             }
@@ -164,9 +164,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
         // If photoUri is a content/file URI (from picker) and not already in internal storage
         if (member.photoUri != null && (member.photoUri.startsWith("content://") || member.photoUri.startsWith("file://"))) {
-            val localPath = com.gymmanager.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(member.photoUri), member.id)
+            val localPath = com.hamzaasad.gymmanagerpro.utils.FileUtils.saveImageToInternalStorage(context, Uri.parse(member.photoUri), member.id)
             if (localPath != null) {
-                val imageHash = com.gymmanager.utils.FileUtils.getImageHash(localPath)
+                val imageHash = com.hamzaasad.gymmanagerpro.utils.FileUtils.getImageHash(localPath)
                 updatedMember = member.copy(photoUri = localPath, imageHash = imageHash)
             }
         }

@@ -77,7 +77,7 @@ fun EditMemberScreen(vm: GymViewModel, onBack: () -> Unit) {
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         bitmap?.let {
             val context = vm.getApplication<android.app.Application>().applicationContext
-            val path = com.gymmanager.utils.FileUtils.saveBitmapToInternalStorage(context, it, "temp_edit_${System.currentTimeMillis()}")
+            val path = com.hamzaasad.gymmanagerpro.utils.FileUtils.saveBitmapToInternalStorage(context, it, "temp_edit_${System.currentTimeMillis()}")
             photoUri = path
         }
     }
