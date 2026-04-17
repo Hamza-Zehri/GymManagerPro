@@ -5,6 +5,13 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 
 ---
 
+## 📱 Application Details
+- **App Name:** Gym Manager Pro
+- **Package Name:** `com.gymmanager`
+- **Version:** 2.0.0
+
+---
+
 ## 📸 Screenshots
 
 <p align="center">
