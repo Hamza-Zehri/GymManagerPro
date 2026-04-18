@@ -36,11 +36,13 @@ fun MembersListScreen(
     val lastSyncTime by vm.lastSyncTime.collectAsState()
     var filterStatus by remember { mutableStateOf<MemberStatus?>(null) }
     var filterShift by remember { mutableStateOf<TimeShift?>(null) }
+    var filterActive by remember { mutableStateOf<Boolean?>(true) } // Default to showing Active only
     var showFilters by remember { mutableStateOf(false) }
 
     val filtered = members.filter { m ->
         (filterStatus == null || m.status == filterStatus) &&
-        (filterShift  == null || m.timeShift == filterShift)
+        (filterShift  == null || m.timeShift == filterShift) &&
+        (filterActive == null || m.isActive == filterActive)
     }
 
     Column(
@@ -116,6 +118,24 @@ fun MembersListScreen(
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Blue500,
+                                selectedLabelColor = Color.White,
+                                containerColor = Zinc800,
+                                labelColor = Zinc400
+                            )
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Account Status", style = MaterialTheme.typography.labelSmall, color = Zinc400)
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(null to "All", true to "Active", false to "Inactive").forEach { (active, label) ->
+                        FilterChip(
+                            selected = filterActive == active,
+                            onClick = { filterActive = active },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Rose500,
                                 selectedLabelColor = Color.White,
                                 containerColor = Zinc800,
                                 labelColor = Zinc400
@@ -221,13 +241,20 @@ fun MemberListCard(member: Member, lastSyncTime: Long, onClick: () -> Unit) {
                         Text(shiftLabel, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall, color = Zinc300)
                     }
+                    
+                    if (!member.isActive) {
+                        Surface(color = StatusUnpaid.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
+                            Text("INACTIVE", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall, color = StatusUnpaid, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
                 StatusBadge(member.status)
                 Spacer(Modifier.height(6.dp))
                 if (member.amountDue > 0) {
-                    Text("Rs. ${"%,.0f".format(member.amountDue)}", style = MaterialTheme.typography.labelSmall, color = Rose400)
+                    Text("Rs. ${"%,.0f".format(member.amountDue)}", style = MaterialTheme.typography.labelSmall, color = StatusUnpaid)
                 } else if (member.subscriptionEnd != null) {
                     val days = DateUtils.daysUntil(member.subscriptionEnd)
                     Text("${days}d left", style = MaterialTheme.typography.labelSmall,
@@ -237,4 +264,3 @@ fun MemberListCard(member: Member, lastSyncTime: Long, onClick: () -> Unit) {
         }
     }
 }
-
