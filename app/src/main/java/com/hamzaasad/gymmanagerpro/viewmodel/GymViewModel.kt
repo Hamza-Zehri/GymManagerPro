@@ -188,6 +188,16 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleMemberStatus(id: String, active: Boolean) = viewModelScope.launch {
+        repo.getMemberByIdOnce(id)?.let {
+            repo.updateMember(it.copy(
+                isActive = active,
+                updatedAt = System.currentTimeMillis(),
+                deviceId = getDeviceId(getApplication())
+            ))
+        }
+    }
+
     fun deleteMember(id: String) = viewModelScope.launch {
         repo.deleteMember(id)
         if (_selectedMemberId.value == id) _selectedMemberId.value = null

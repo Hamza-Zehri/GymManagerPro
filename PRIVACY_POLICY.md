@@ -31,4 +31,4 @@ The Application is designed to work fully offline. Data synchronization between 
 
 ## Contact Us
 If you have any questions regarding privacy while using the Application, please contact:
-**Email:** hamzaasad@example.com (Replace with your actual email)
+**Email:** hamidzehri42@gmail.com

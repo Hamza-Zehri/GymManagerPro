@@ -104,6 +104,11 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                         Icon(if (m.isBlocked) Icons.Default.LockOpen else Icons.Default.Block, null, tint = if (m.isBlocked) GymGreenBright else StatusUnpaid)
                     }
                     Spacer(Modifier.width(8.dp))
+                    IconButton(onClick = { vm.toggleMemberStatus(m.id, !m.isActive) },
+                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (m.isActive) Color(0x1AEF5350) else Color(0x1A4CAF50))) {
+                        Icon(if (m.isActive) Icons.Default.PersonOff else Icons.Default.Person, null, tint = if (m.isActive) StatusUnpaid else GymGreenBright)
+                    }
+                    Spacer(Modifier.width(8.dp))
                     IconButton(onClick = { onNavigate(Screen.EditMember.createRoute(m.id)) },
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color(0x1AFFD600))) {
                         Icon(Icons.Default.Edit, null, tint = GymYellow)
@@ -163,6 +168,11 @@ fun MemberProfileScreen(vm: GymViewModel, onNavigate: (String) -> Unit, onBack: 
                                 Surface(color = Color(0x1AEF5350), shape = RoundedCornerShape(8.dp)) {
                                     Text("BLOCKED", modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                         style = MaterialTheme.typography.labelMedium, color = StatusUnpaid, fontWeight = FontWeight.Bold)
+                                }
+                            } else if (!m.isActive) {
+                                Surface(color = Color(0x1A607D8B), shape = RoundedCornerShape(8.dp)) {
+                                    Text("INACTIVE", modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                        style = MaterialTheme.typography.labelMedium, color = Color(0xFF607D8B), fontWeight = FontWeight.Bold)
                                 }
                             } else {
                                 Surface(color = statusBg, shape = RoundedCornerShape(8.dp)) {
