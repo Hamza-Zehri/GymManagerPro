@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- This wrapper adds padding around your PNG so it fits in the Android "Safe Zone" and doesn't get cropped -->
+    <!-- Full-screen icon wrapper -->
     <item
-        android:drawable="@drawable/ic_launcher_foreground_png"
-        android:top="90dp"
-        android:bottom="90dp"
-        android:left="90dp"
-        android:right="90dp" />
+        android:drawable="@drawable/ic_launcher_foreground_png" />
 </layer-list>
