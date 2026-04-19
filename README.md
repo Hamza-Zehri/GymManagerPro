@@ -9,6 +9,9 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
 ## 📸 Screenshots
 
 <p align="center">
+  <img src="Assets/featuregraphics.png" width="200" />
+</p>
+<p align="center">
   <img src="Assets/applock.png" width="200" />
   <img src="Assets/photo0.png" width="200" />
   <img src="Assets/photo1.png" width="200" />
@@ -20,10 +23,7 @@ Room SQLite, and an automated manual-first backup system. Based on the Figma UI 
   <img src="Assets/photo5.png" width="200" />
   <img src="Assets/photo6.png" width="200" />
 </p>
-<p align="center">
-  <img src="Assets/photo7.png" width="200" />
-  <img src="Assets/settings.png" width="200" />
-</p>
+
 
 ---
 
