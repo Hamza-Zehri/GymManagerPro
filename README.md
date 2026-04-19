@@ -1,4 +1,4 @@
-# 🏋️ Gym Manager Pro — Android App (v2.0.0)
+# 🏋️ Gym Manager Pro — Android App (v2.1)
 
 <p align="center">
   <img src="Assets/logo.png" width="120" />
