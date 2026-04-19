@@ -39,7 +39,7 @@
 
 ## 🚀 Overview
 
-**Gym Manager Pro v2.0** is a fully offline-capable Android application designed to help gym owners manage members, fees, attendance, and data securely — without relying on internet connectivity.
+**Gym Manager Pro v2.1** is a fully offline-capable Android application designed to help gym owners manage members, fees, attendance, and data securely — without relying on internet connectivity.
 
 It emphasizes:
 
@@ -50,7 +50,7 @@ It emphasizes:
 
 ---
 
-## ✅ Key Features (v2.0.0)
+## ✅ Key Features (v2.1)
 
 | Feature                      | Description                                                                    |
 | :--------------------------- | :----------------------------------------------------------------------------- |
