@@ -1,116 +1,158 @@
 # 🏋️ Gym Manager Pro — Android App (v2.0.0)
 
-A **complete, production-ready Android gym management system** built with Jetpack Compose,
-Room SQLite, and an automated manual-first backup system. Based on the Figma UI design by Engr. Hamza Asad.
+<p align="center">
+  <img src="Assets/logo.png" width="120" />
+</p>
 
+<p align="center">
+  <b>Production-ready, offline-first gym management system</b><br>
+  Built with Jetpack Compose, Room SQLite, and secure backup architecture
+</p>
+
+<p align="center">
+  Designed by <b>Engr. Hamza Asad</b> • Developed for real-world usage
+</p>
 
 ---
 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="Assets/featuregraphics.png" width="200" />
+  <img src="Assets/featuregraphics.png" width="650" />
 </p>
+
 <p align="center">
-  <img src="Assets/applock.png" width="200" />
-  <img src="Assets/photo0.png" width="200" />
-  <img src="Assets/photo1.png" width="200" />
-  <img src="Assets/photo2.png" width="200" />
+  <img src="Assets/applock.png" width="150" />
+  <img src="Assets/photo0.png" width="150" />
+  <img src="Assets/photo1.png" width="150" />
+  <img src="Assets/photo2.png" width="150" />
 </p>
+
 <p align="center">
-  <img src="Assets/photo3.png" width="200" />
-  <img src="Assets/photo4.png" width="200" />
-  <img src="Assets/photo5.png" width="200" />
-  <img src="Assets/photo6.png" width="200" />
+  <img src="Assets/photo3.png" width="150" />
+  <img src="Assets/photo4.png" width="150" />
+  <img src="Assets/photo5.png" width="150" />
+  <img src="Assets/photo6.png" width="150" />
 </p>
 
+---
+
+## 🚀 Overview
+
+**Gym Manager Pro v2.0** is a fully offline-capable Android application designed to help gym owners manage members, fees, attendance, and data securely — without relying on internet connectivity.
+
+It emphasizes:
+
+* 🔐 Data security
+* ⚡ Fast performance
+* 📡 Offline-first architecture
+* 📦 Reliable backup & restore
 
 ---
 
-## ✅ Key Features (New in v2.0.0)
+## ✅ Key Features (v2.0.0)
 
-| Feature | Description |
-| :--- | :--- |
-| **New! Hotspot Sync (v2.0)** | Transfer data between phones instantly using a Local Hotspot. No internet required. |
-| **New! ZIP Backups (v2.0)** | Backups now include both the database AND member photos in a single `.zip` file. |
-| **Member Management** | Add, edit, block/unblock members. Uses mandatory CNIC for unique ID. |
-| **Internal Image Storage** | Photos are saved inside the app's private storage for maximum security. |
-| **App Lock (High Security)** | Fingerprint & PIN support. Locks instantly when you leave the app or lock the screen. |
-| **Auto Backup (24h)** | Automatically saves your data every day to your phone's memory. |
-| **Messaging** | One-tap WhatsApp or SMS reminders for fees. |
-| **Attendance** | Easy daily attendance tracking with shift support. |
-| **Fee Management** | Track Paid, Unpaid, and Partial payments with a clear history. |
-| **Subscription Plans** | Create, edit, or delete custom packages (e.g., Monthly, Yearly). |
-| **Intelligent Renewal** | Resubscribe expired members with cumulative debt tracking and exact date alignment (e.g., 5th to 5th). |
-| **Smart Expiry Tracker** | Dashboard notification icon (Amber) for members whose subscription expires within 5 days. |
-| **Professional UI** | Clean, dark theme design optimized for all screen sizes. |
-
----
-
-## 📲 How to Sync Two Phones (Local Transfer)
-
-If you have a new phone or want to copy data between devices:
-
-### 1. On Phone A (The one with the data)
-- Turn on your **Mobile Hotspot**.
-- Open the app → **Settings → Sync Data**.
-- Tap **"Host Data"** (Phone A).
-- Note the **IP Address** shown on the screen (e.g., `192.168.43.1`).
-
-### 2. On Phone B (The new phone)
-- Connect to Phone A's **Hotspot** via Wi-Fi.
-- Open the app → **Settings → Sync Data**.
-- Tap **"Receive Data"** (Phone B).
-- Enter the **IP Address** you saw on Phone A.
-- Tap **"Start Sync"**.
-
-**Done!** Everything (members, photos, and records) is now on the new phone.
+| Feature                      | Description                                                                    |
+| :--------------------------- | :----------------------------------------------------------------------------- |
+| 🔄 **Hotspot Sync**          | Transfer data between devices using local Wi-Fi hotspot (no internet required) |
+| 📦 **ZIP Backups**           | Backup database + member images into a single `.zip` file                      |
+| 👤 **Member Management**     | Add, edit, block/unblock members with CNIC-based unique ID                     |
+| 🖼️ **Secure Image Storage** | Profile images stored in private app storage                                   |
+| 🔐 **Hybrid App Lock**       | Biometric + PIN authentication with instant lock                               |
+| ⏱️ **Auto Backup (24h)**     | Scheduled backups using WorkManager                                            |
+| 💬 **Messaging**             | One-tap WhatsApp & SMS fee reminders                                           |
+| 📅 **Attendance Tracking**   | Daily attendance with shift support                                            |
+| 💰 **Fee Management**        | Track paid, unpaid, and partial payments                                       |
+| 📊 **Subscription Plans**    | Create and manage custom plans                                                 |
+| 🧠 **Intelligent Renewal**   | Handles skipped months with cumulative dues                                    |
+| ⚠️ **Expiry Alerts**         | Dashboard warning for expiring memberships (≤5 days)                           |
+| 🎨 **Modern UI**             | Clean dark theme with Material 3                                               |
 
 ---
 
-## 🔁 Backup & Restore Flow (ZIP Format)
+## 📲 Offline Sync (Phone-to-Phone Transfer)
 
-The app keeps your data safe with an improved backup system:
+### 🔹 Phone A (Source Device)
 
-### 1. Manual Backup
-- Go to **Settings → Backup & Restore**.
-- Tap **Create Backup**.
-- A full backup file (`GymBackup_YYYYMMDD_HHMMSS.zip`) is saved in your **Downloads/GymBackup** folder.
-- This file contains your entire database and all member profile pictures.
+* Enable **Mobile Hotspot**
+* Open: `Settings → Sync Data`
+* Tap **Host Data**
+* Copy the IP address (e.g., `192.168.43.1`)
 
-### 2. Restoring Data
-- Tap **Restore from File**.
-- Select your `.zip` backup file.
-- The app will extract the photos and restore the database instantly.
+### 🔹 Phone B (Target Device)
+
+* Connect to hotspot
+* Open: `Settings → Sync Data`
+* Tap **Receive Data**
+* Enter IP → Start Sync
+
+✅ All data (members, images, records) transfers instantly
 
 ---
 
-## 🛡️ Privacy Policy
-Your privacy is important to us. View our full privacy policy here:
-[Privacy Policy](https://github.com/Hamza-Zehri/GymManagerPro/blob/master/PRIVACY_POLICY.md)
+## 🔁 Backup & Restore System
+
+### 📤 Manual Backup
+
+* Go to: `Settings → Backup & Restore`
+* Tap **Create Backup**
+* File saved in: `Downloads/GymBackup/`
+* Format: `GymBackup_YYYYMMDD_HHMMSS.zip`
+
+### 📥 Restore Backup
+
+* Tap **Restore from File**
+* Select `.zip`
+* Data + images restored automatically
 
 ---
 
 ## 🛡️ Security Features
 
-- **Instant Lock**: The app locks immediately every time it is minimized or the screen turns off.
-- **App-Specific PIN**: Set a 4-digit PIN just for this app.
-- **Biometric Integration**: Use your Fingerprint for fast, secure access.
+* Instant lock on app minimize or screen off
+* App-specific PIN system
+* Biometric authentication (Fingerprint)
+* Private internal storage for sensitive data
+
+---
+
+## ⚙️ Tech Stack
+
+* **Jetpack Compose** — Declarative UI
+* **Material 3** — Modern design system
+* **Room (SQLite)** — Local database
+* **WorkManager** — Background tasks & backups
 
 ---
 
 ## ⚙️ Setup Instructions
 
-### 1. Prerequisites
-- **Android Studio Hedgehog** or newer
-- **Android Device** (API 24 minimum)
+### 📋 Prerequisites
 
-### 2. Build & Run
-1. Open the project in Android Studio.
-2. Click the **Run** button.
+* Android Studio Hedgehog or newer
+* Android device (API 24+)
+
+### ▶️ Run Project
+
+1. Open project in Android Studio
+2. Click **Run**
 
 ---
 
-## 🎨 Design Credits
-UI design by **Engr. Hamza Asad** (Figma)  
-Implementation: Jetpack Compose + Material3
+## 🛡️ Privacy Policy
+
+Read full policy:
+👉 https://github.com/Hamza-Zehri/GymManagerPro/blob/master/PRIVACY_POLICY.md
+
+---
+
+## 🎨 Credits
+
+* **UI Design:** Engr. Hamza Asad (Figma)
+* **Development:** Native Android (Jetpack Compose)
+
+---
+
+## ⭐ Support
+
+If you find this project useful, consider giving it a ⭐ on GitHub!
